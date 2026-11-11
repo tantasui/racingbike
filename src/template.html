@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DREAMFALL — Downhill Racing</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#05030f;color:#fff;font-family:"Arial Black","Segoe UI Black",Impact,"Helvetica Neue",Arial,sans-serif;user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.neon{font-style:italic;letter-spacing:.02em;-webkit-text-stroke:1.5px rgba(8,4,40,.75);paint-order:stroke fill;text-shadow:0 0 6px var(--g,#3df),0 0 18px var(--g,#3df),0 3px 0 rgba(8,4,40,.8)}
+#hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .3s}
+#hud.on{opacity:1}
+#hTimeBox{position:absolute;left:28px;top:20px}
+#hTimeBox small,#hPosBox small,#hSpeedBox small{display:block;font:700 12px Arial,sans-serif;letter-spacing:.25em;opacity:.9;text-shadow:0 1px 3px #000,0 0 8px #000}
+#hTime{font-size:40px;--g:#3df;font-variant-numeric:tabular-nums}
+#hPosBox{position:absolute;right:28px;top:14px;text-align:right}
+#hPos{font-size:72px;line-height:1;--g:#fb3}
+#hPosBox span{font-size:26px;--g:#fb3}
+#hProg{position:absolute;left:50%;top:26px;width:min(44vw,560px);height:8px;transform:translateX(-50%);background:rgba(10,6,40,.6);border:1px solid rgba(255,255,255,.55);border-radius:6px;box-shadow:0 0 12px rgba(80,200,255,.6)}
+#hProg b{position:absolute;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 9px currentColor}
+#hProg b.me{width:19px;height:19px;margin:-9.5px 0 0 -9.5px;z-index:2;border-width:3px}
+#hProg i{position:absolute;top:-4px;width:2px;height:14px;background:rgba(255,255,255,.6)}
+#hProg i.fin{right:-3px;width:6px;top:-7px;height:20px;background:repeating-linear-gradient(#fff 0 4px,#111 4px 8px)}
+#hBL{position:absolute;left:28px;bottom:26px}
+#hHealth{width:270px;height:13px;border:2px solid #fff;border-radius:3px;transform:skewX(-18deg);background:rgba(10,6,40,.6);box-shadow:0 0 12px #3f8;margin-bottom:12px;overflow:hidden}
+#hHealthFill{height:100%;width:100%;background:linear-gradient(90deg,#3f8,#bf5);transition:width .15s}
+#hHealth.low{box-shadow:0 0 14px #f33;animation:blink .35s infinite}
+#hHealth.low #hHealthFill{background:#f43}
+#hBoost{display:flex;gap:7px;transform:skewX(-18deg)}
+#hBoost div{width:48px;height:26px;border:2px solid #fff;border-radius:3px;background:linear-gradient(90deg,#fb3 calc(var(--f,0)*100%),rgba(10,6,40,.6) 0);box-shadow:0 0 8px rgba(255,170,40,.5)}
+#hBoost div.on{background:linear-gradient(#ffe27a,#f80);box-shadow:0 0 16px #fa3,0 0 30px #f60}
+#hBoost.full div{animation:blink .28s infinite}
+#hBoost.act div.on,#hBoost.act{filter:brightness(1.4)}
+#hBL small{display:block;font:700 12px Arial,sans-serif;letter-spacing:.25em;margin:0 0 5px 4px;text-shadow:0 1px 3px #000,0 0 8px #000}
+#hChargeBox{width:270px;height:7px;margin-top:10px;border:1px solid #fff;transform:skewX(-18deg);opacity:0;background:rgba(10,6,40,.6)}
+#hCharge{height:100%;width:0;background:#3df;box-shadow:0 0 10px #3df}
+#hSpeedBox{position:absolute;right:30px;bottom:14px;text-align:right}
+#hSpeed{font-size:112px;line-height:.9;--g:#f5a;font-variant-numeric:tabular-nums}
+#hSpeedBox span{font-size:30px;--g:#f5a}
+#hPop{position:absolute;left:0;right:0;top:15%;display:flex;flex-direction:column;align-items:center;gap:4px}
+.pop{font-size:clamp(26px,4.2vw,58px);font-style:italic;-webkit-text-stroke:2px rgba(8,4,40,.8);paint-order:stroke fill;text-shadow:0 0 8px var(--g),0 0 26px var(--g),0 4px 0 rgba(8,4,40,.85);animation:pop 1.7s cubic-bezier(.2,1.4,.4,1) forwards;--g:#3df;white-space:nowrap}
+.pop.good{--g:#4f8;color:#eaffef}.pop.bad{--g:#f33;color:#ffe0d8}.pop.trick{--g:#f5f;color:#ffe9ff;font-size:clamp(20px,3vw,42px)}.pop.combo{--g:#fb3;color:#fff6c8}.pop.hit{--g:#f80;color:#fff0d0}.pop.ko{--g:#ff3;color:#fffbd0;font-size:clamp(34px,5.5vw,78px)}.pop.info{--g:#3df;font-size:clamp(18px,2.4vw,34px)}
+@keyframes pop{0%{transform:scale(.2) rotate(-8deg);opacity:0}12%{transform:scale(1.25) rotate(-3deg);opacity:1}22%{transform:scale(1) rotate(-3deg)}80%{transform:scale(1) rotate(-3deg);opacity:1}100%{transform:scale(1.1) translateY(-30px) rotate(-3deg);opacity:0}}
+@keyframes blink{50%{filter:brightness(2.2)}}
+#hCount{position:absolute;left:0;right:0;top:30%;text-align:center;font-size:clamp(90px,17vw,230px);--g:#fb3}
+#hCount.zap{animation:zap .9s ease-out forwards}
+@keyframes zap{0%{transform:scale(2.4);opacity:0}20%{transform:scale(1);opacity:1}100%{transform:scale(.8);opacity:.0}}
+#hWarn{position:absolute;left:0;right:0;bottom:22%;text-align:center;font-size:30px;--g:#f33;animation:blink .4s infinite}
+.scr{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:2.2vh;padding:3vh 3vw;background:radial-gradient(ellipse at center,rgba(8,4,40,.25),rgba(8,4,40,.78));text-align:center;overflow:auto}
+.scr.on{display:flex}
+h1{font-size:clamp(54px,11vw,150px);line-height:.9;--g:#f5a;font-style:italic}
+h1 span{display:block;font-size:.26em;letter-spacing:.42em;--g:#3df;margin-top:.5em}
+h2{font-size:clamp(28px,4.4vw,56px);--g:#3df}
+.tag{font:700 15px Arial,sans-serif;letter-spacing:.2em;text-shadow:0 1px 4px #000,0 0 10px #000}
+button{font:inherit;font-style:italic;font-size:22px;color:#fff;padding:12px 34px;margin:0 6px;border:2px solid #fff;border-radius:4px;background:rgba(20,10,70,.6);cursor:pointer;transform:skewX(-12deg);box-shadow:0 0 14px #3df,inset 0 0 14px rgba(60,220,255,.35);text-shadow:0 0 8px #3df;transition:.12s;pointer-events:auto}
+button:hover,button.sel{background:#fb3;color:#1a0840;box-shadow:0 0 24px #fb3;text-shadow:none}
+button.big{font-size:32px;padding:16px 60px;box-shadow:0 0 22px #f5a,inset 0 0 16px rgba(255,90,170,.5)}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(250px,1fr));gap:5px 28px;font:600 14px Arial,sans-serif;text-align:left;background:rgba(8,4,40,.6);padding:14px 20px;border:1px solid rgba(255,255,255,.35);border-radius:6px;box-shadow:0 0 16px rgba(60,220,255,.3)}
+.controls div{display:flex;gap:10px;align-items:center}
+kbd{display:inline-block;min-width:104px;text-align:center;font:700 12px Arial,sans-serif;padding:3px 7px;border:1px solid #3df;border-radius:4px;color:#bff;background:rgba(60,220,255,.12);box-shadow:0 0 6px rgba(60,220,255,.5)}
+.cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.card{width:270px;padding:16px 16px 12px;text-align:left;border:2px solid rgba(255,255,255,.5);border-radius:8px;background:rgba(10,6,46,.72);cursor:pointer;transition:.15s;font-family:Arial,sans-serif}
+.card:hover{transform:translateY(-4px)}
+.card.sel{border-color:var(--c);box-shadow:0 0 26px var(--c),inset 0 0 22px color-mix(in srgb,var(--c) 30%,transparent);transform:translateY(-6px) scale(1.03)}
+.card h3{font:italic 900 21px "Arial Black",Impact,sans-serif;color:var(--c);text-shadow:0 0 10px var(--c);margin-bottom:6px}
+.card p{font-size:13px;line-height:1.35;min-height:36px;margin-bottom:8px;opacity:.92}
+.card small{display:block;margin-top:8px;font-size:11px;letter-spacing:.12em;opacity:.8}
+.card .ico{font-size:40px;line-height:1;margin-bottom:6px;filter:drop-shadow(0 0 8px var(--c))}
+#courseCards .card{width:205px}
+.stat{display:flex;align-items:center;gap:8px;font:700 10px Arial,sans-serif;letter-spacing:.1em;margin:4px 0}
+.stat span{width:76px}.stat em{width:16px;text-align:right;font-style:normal}
+.bar{flex:1;height:8px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c);box-shadow:0 0 8px var(--c)}
+#resBody{width:min(520px,90vw);font-family:Arial,sans-serif;background:rgba(8,4,40,.7);border:2px solid #3df;border-radius:8px;padding:14px 22px;box-shadow:0 0 24px rgba(60,220,255,.5)}
+.row{display:flex;justify-content:space-between;padding:6px 0;font:700 17px Arial,sans-serif;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.14)}
+.row b{color:#fd6;text-shadow:0 0 8px #fb3}
+.row.sub{font-size:13px;opacity:.8;padding:2px 0 2px 14px;border:0}
+.stand{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;margin-top:10px;font:700 12px Arial,sans-serif}
+#loading{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,3,15,.82);font-size:40px;z-index:9}
+#loading.on{display:flex}
+.hint{font:600 12px Arial,sans-serif;letter-spacing:.14em;opacity:.85;text-shadow:0 1px 3px #000}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="hTimeBox"><small>TIME</small><div id="hTime" class="neon">0:00.00</div></div>
+  <div id="hProg"></div>
+  <div id="hPosBox"><small>POSITION</small><span id="hPos" class="neon">1st</span><span class="neon"> / 6</span></div>
+  <div id="hPop"></div>
+  <div id="hCount" class="neon"></div>
+  <div id="hWarn" class="neon"></div>
+  <div id="hBL"><small>HEALTH</small><div id="hHealth"><div id="hHealthFill"></div></div><small>BOOST</small><div id="hBoost"><div></div><div></div><div></div><div></div><div></div></div><div id="hChargeBox"><div id="hCharge"></div></div></div>
+  <div id="hSpeedBox"><span id="hSpeed" class="neon">0</span><span class="neon"> MPH</span></div>
+</div>
+<div id="scrMain" class="scr">
+  <h1 class="neon">DREAMFALL<span class="neon">DOWNHILL RACING</span></h1>
+  <div class="tag">RIDE THE FOLDED WORLD · LAND TRICKS FOR BOOST · KNOCK RIVALS OFF THEIR RIDES</div>
+  <button class="big" onclick="toRide()">PLAY</button>
+  <div class="controls"></div>
+  <div class="hint">ENTER TO START · TIP: USE F FOR BOOST IF L-CTRL + W CLOSES YOUR BROWSER TAB</div>
+</div>
+<div id="scrRide" class="scr">
+  <h2 class="neon">CHOOSE YOUR RIDE</h2>
+  <div id="rideCards" class="cards"></div>
+  <div><button onclick="toMenu()">BACK</button><button class="big" onclick="toCourse()">NEXT</button></div>
+  <div class="hint">← → SELECT · ENTER CONFIRM</div>
+</div>
+<div id="scrCourse" class="scr">
+  <h2 class="neon">CHOOSE YOUR DESCENT</h2>
+  <div id="courseCards" class="cards"></div>
+  <div id="diffBtns"></div>
+  <div><button onclick="toRide()">BACK</button><button class="big" onclick="startRace()">RACE</button></div>
+  <div class="hint">← → COURSE · ↑ ↓ DIFFICULTY · ENTER RACE</div>
+</div>
+<div id="scrPause" class="scr">
+  <h2 class="neon">PAUSED</h2>
+  <div class="controls"></div>
+  <div><button class="big" onclick="resume()">RESUME</button><button onclick="startRace()">RESTART</button><button onclick="toMenu()">MENU</button></div>
+</div>
+<div id="scrRes" class="scr">
+  <h2 id="resTitle" class="neon" style="--g:#fb3">FINISH</h2>
+  <div id="resBody"></div>
+  <div><button class="big" onclick="startRace()">RETRY</button><button onclick="toMenu()">MENU</button></div>
+</div>
+<div id="loading" class="neon">BUILDING DREAM…</div>
+<script>/*__THREE__*/</script>
+<script>/*__GAME__*/</script>
+</body>
+</html>
