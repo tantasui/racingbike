@@ -293,3 +293,20 @@ function mineShove(r, side) {
 
 // ---------------------------------------------------------------- PHASE 4: power-ups
 function mineAhead(r, range, sameLane) { let best = null, bd = range; for (const o of GM.racers) { if (o === r || o.mode === 2 || o.fin) continue; const d = o.prog - r.prog; if (d > .5 && d < bd && (!sameLane || o.lane === r.lane)) { bd = d; best = o; } } return best; }
+function mineUse(r) {
+  const M = MINE, it = r.item; if (r.mode === 2) return;
+  if (it === 'dynamite') { if (r.mode !== 0) return; M.proj.push({ lane: r.lane, u: r.u + 1.6, v: r.v + 24, t: 2.4, by: r, y: 0 }); }
+  else if (it === 'ghost') r.ghostT = 5.5;
+  else if (it === 'grapple') { const t = mineAhead(r, 48, true); if (!t || r.mode !== 0) { mineFx('nouse', r); return; } r.grap = { t, T: 0 }; t.grapBy = r; }
+  else if (it === 'surge') { if (r.mode !== 0) return; r.surgeT = 2.8; }
+  else if (it === 'oil') { if (r.mode !== 0) return; M.slicks.push({ lane: r.lane, u: r.u - 2.6, t: 14, by: r }); }
+  else if (it === 'spare') { if (r.mode !== 0) return; const g = mineNextGap(r.lane, r.u, 170) || (r.lane ? mineNextGap(0, r.u, 170) : null); if (g) g.bridgeT = 9; else M.ramps.push({ lane: r.lane, u: r.u + Math.max(12, r.v * .65), t: 7, by: r }); }
+  else if (it === 'lock') { const t = mineAhead(r, 70, false); if (!t) { mineFx('nouse', r); return; } t.lockT = 4; t.lastBy = r; t.lastByT = 5; mineFx('locked', t, r); }
+  else if (it === 'whistle') { for (const o of GM.racers) if (o !== r && o.mode !== 2 && o.pos.distanceTo(r.pos) < 38) { o.blindT = 2; o.stunT = .55; o.tipImp += (Math.random() < .5 ? -1 : 1) * .38; o.lastBy = r; o.lastByT = 2.5; } }
+  r.item = null; mineFx('use', r, it);
+}
+function mineGrapStep(r, dt) {
+  const g = r.grap, t = g.t; g.T += dt;
+  if (t.mode !== 0 || r.mode !== 0 || g.T > 3.2 || t.prog < r.prog) { r.grap = null; return; }
+  if (g.T > .3 && t.c.brake > .5 && t.lockT <= 0) { r.grap = null; t.lastBy = null; r.derail(1, 'grapple'); t.derail(-1, 'grapple'); return; } // they braked while hooked: both wreck
+  r.v = Math.max(r.v, Math.min(40, t.v + 10));
