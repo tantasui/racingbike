@@ -128,7 +128,7 @@ const AU = {
     if (air) g *= .5;
     this.eng.frequency.setTargetAtTime(f, t, .05); this.engG.gain.setTargetAtTime(m * g, t, .08); this.engF.frequency.setTargetAtTime(cf, t, .1);
   },
-  silence() { if (!this.ctx) return; const t = this.ctx.currentTime; this.windG.gain.setTargetAtTime(0, t, .1); this.engG.gain.setTargetAtTime(0, t, .1); this.rumG.gain.setTargetAtTime(0, t, .1); },
+  silence() { if (window.MOBO && MOBO.silence) MOBO.silence(); if (window.MINE && MINE.silence) MINE.silence(); if (!this.ctx) return; const t = this.ctx.currentTime; this.windG.gain.setTargetAtTime(0, t, .1); this.engG.gain.setTargetAtTime(0, t, .1); this.rumG.gain.setTargetAtTime(0, t, .1); },
   // --- generative music: bass + pentatonic arp
   music(root, tempo, intensity) {
     const c = this.ctx; if (!c || this.muted || !this.musicOn) return;
