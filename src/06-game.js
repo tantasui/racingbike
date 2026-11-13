@@ -22,10 +22,10 @@ function evt(type, r, a) {
       break;
     case 'bounce': burst(TP1.x, r.ry, TP1.z, 6, 3, .5, .3, ac); break;
     case 'hit': { tpos(a.s, a.d, TP1); burst(TP1.x, a.y + 1.2, TP1.z, 18, 9, .45, .3, [2.2, 1.8, .8], 4);
-      if (P) { AU.hit(); popup('HIT! +100', 'hit'); cam.shake = Math.max(cam.shake, .5); } else if (a.isP && !GM.demo) { AU.hit(); cam.shake = 1; cam.flash = .35; } else if (near) AU.noise(.1, { f: 1500, to: 400, vol: .1 }); break; }
+      if (P) { AU.hit(); popup('HIT! +100', 'hit'); cam.shake = Math.max(cam.shake, .5); PAD.rumble(.4, .8, 140); } else if (a.isP && !GM.demo) { AU.hit(); cam.shake = 1; cam.flash = .35; PAD.rumble(1, .6, 260); } else if (near) AU.noise(.1, { f: 1500, to: 400, vol: .1 }); break; }
     case 'ko': if (P) { AU.ko(); popup('KNOCKOUT! +500', 'ko'); } break;
-    case 'boost': if (P) { AU.boost(); cam.shake = Math.max(cam.shake, .6); } burst(x, y + .6, z, 16, 8, .5, .35, [tc[0] + .5, tc[1] + .5, tc[2] + .3], 0); break;
-    case 'wall': burst(x, y + .6, z, 8, 6, .35, .2, [2, 1.4, .6], 5); if (P) { AU.thump(); cam.shake = Math.max(cam.shake, .3 + a); } break;
+    case 'boost': if (P) { AU.boost(); cam.shake = Math.max(cam.shake, .6); PAD.rumble(.3, .9, 600); } burst(x, y + .6, z, 16, 8, .5, .35, [tc[0] + .5, tc[1] + .5, tc[2] + .3], 0); break;
+    case 'wall': burst(x, y + .6, z, 8, 6, .35, .2, [2, 1.4, .6], 5); if (P) { AU.thump(); cam.shake = Math.max(cam.shake, .3 + a); PAD.rumble(.6, .3, 150); } break;
     case 'cp': if (P) { AU.cp(); popup('CHECKPOINT ' + r.cpI + '/' + (track.cps.length - 1), 'info'); } break;
     case 'geyser': if (P) { AU.geyser(); popup('GEYSER LAUNCH!', 'info'); } break;
     case 'swing': if (P) AU.swing(); break;
@@ -98,6 +98,7 @@ function updHazards(dt) {
 
 // ---------------------------------------------------------------- race setup
 function newRace(demo) {
+  if (course.mine) return MINE.newRace(demo);
   GM.demo = demo;
   for (const r of GM.racers) r.dispose(); GM.racers = [];
   const rides = [GM.ride]; const pool = [0, 1, 2, 0, 1, 2].filter((x, i) => !(x === GM.ride && i < 3)); // 5 rivals: a mix of all three rides
