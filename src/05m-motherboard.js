@@ -660,3 +660,23 @@ function moboAudioInit() {
   N.humG = c.createGain(); N.humG.gain.value = 0; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
   for (const [f, v] of [[60, .5], [120, .35], [180, .18], [240, .08]]) { const o = c.createOscillator(); o.type = f === 60 ? 'sawtooth' : 'sine'; o.frequency.value = f; const g = c.createGain(); g.gain.value = v; o.connect(g); g.connect(lp); o.start(); }
   lp.connect(N.humG); N.humG.connect(AU.master);
+  N.wh = c.createOscillator(); N.wh.type = 'sawtooth'; N.whF = c.createBiquadFilter(); N.whF.type = 'bandpass'; N.whF.Q.value = 6; N.whG = c.createGain(); N.whG.gain.value = 0;
+  N.wh.connect(N.whF); N.whF.connect(N.whG); N.whG.connect(AU.master); N.wh.start();
+  N.windG = c.createGain(); N.windG.gain.value = 0; N.windG.connect(AU.master);
+  N.musF = c.createBiquadFilter(); N.musF.type = 'lowpass'; N.musF.frequency.value = 900; N.musF.Q.value = 1.4; N.musG = c.createGain(); N.musG.gain.value = .5; N.musF.connect(N.musG); N.musG.connect(AU.master);
+}
+MOBO.startMusic = function () {
+  const S = MOBO.snd, c = AU.ctx; MOBO.wantMusic = true; if (!c || !S.nodes || !S.buf.dark_synthwave || S.music || AU.muted) return;
+  const src = c.createBufferSource(); src.buffer = S.buf.dark_synthwave; src.loop = true; src.connect(S.nodes.musF); src.start(); S.music = src;
+};
+MOBO.raceStart = function () { moboAudioInit(); MOBO.startMusic(); MOBO.slowT = 0; MOBO.fp = MOBO.fp && true; };
+MOBO.silence = function () {
+  const S = MOBO.snd; MOBO.wantMusic = false; if (S.music) { try { S.music.stop(); } catch (e) { } S.music = null; }
+  const N = S.nodes, c = AU.ctx; if (N && c) { const t = c.currentTime; N.humG.gain.setTargetAtTime(0, t, .1); N.whG.gain.setTargetAtTime(0, t, .1); N.windG.gain.setTargetAtTime(0, t, .1); }
+};
+MOBO.audio = function (p) {
+  const c = AU.ctx; if (!c) return; moboAudioInit(); const N = MOBO.snd.nodes, t = c.currentTime, m = AU.muted ? 0 : 1, k = clamp(p.v / 40, 0, 1.3), boost = p.boostT > 0;
+  if (MOBO.wantMusic && !MOBO.snd.music) MOBO.startMusic();
+  N.humG.gain.setTargetAtTime(m * (.05 + (MOBO.pow >= 0 ? .08 : 0)), t, .2);
+  N.wh.frequency.setTargetAtTime(220 + p.v * 38 + (boost ? 600 : 0), t, .05); N.whF.frequency.setTargetAtTime(500 + p.v * 70, t, .08);
+  N.whG.gain.setTargetAtTime(m * (p.state || p.air ? .004 : .008 + k * k * .03), t, .08);
