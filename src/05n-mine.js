@@ -179,3 +179,19 @@ class MineCart {
     if (this.fin) { acc = this.v < 12 ? .6 : 0; brake = this.v > 16 ? .4 : 0; }
     this.duck += ((c.duck ? 1 : 0) - this.duck) * Math.min(1, dt * 14);
     if (c.boostHit && this.boost >= 1 && this.boostT <= 0 && this.mode === 0) { this.boost -= 1; this.boostT = 1.7; mineFx('boost', this); }
+    if (c.use && this.item) mineUse(this);
+    if (c.pL || c.kR) mineShove(this, c.pL ? -1 : 1);
+    if (this.mode === 0) this.rail(dt, acc, brake, lean, c); else this.air(dt, lean);
+  }
+  rail(dt, acc, brake, lean, c) {
+    const M = MINE, L = M.L, l = M.lanes[this.lane], P = mineLP(l, this.u, MQ), st = this.stt, v0 = this.v;
+    const surge = this.surgeT > 0, boosting = this.boostT > 0, dr = this.draft > .8 ? 1 : 0;
+    const vmax = surge ? 42 : boosting ? 37 : (30 + dr * 3) * st.top * this.rb, A0 = surge ? 17 : boosting ? 14 : (9 + dr * 2.5) * st.acc;
+    let a = acc * Math.max(0, A0 * (1 - this.v / vmax)) - brake * 15 - MGRAV * P.ty - (.25 + .0006 * this.v * this.v * (dr ? .45 : 1)) - .07 * Math.abs(P.k) * this.v * this.v;
+    if (this.v > vmax + 1) a -= 3;
+    this.v = Math.max(0, this.v + a * dt); if (acc > 0 && this.v < 2.5 && GM.count <= 0) this.v = 2.5;
+    if (this.grap) mineGrapStep(this, dt);
+    this.heat += ((brake > .3 && this.v > 5 ? 1 : 0) - this.heat) * Math.min(1, dt * (brake > .3 ? 5 : 1.2));
+    let u = this.u + this.v * dt / P.sc; const u0 = this.u;
+    for (const J of M.junc) if (J.lane === this.lane && u0 < J.u && u >= J.u) { this.lane = mineSwitch(J, this, c.choice != null ? c.choice : lean < -.3 ? 0 : lean > .3 ? 1 : -1); break; }
+    const l2 = M.lanes[this.lane]; if (this.lane !== 0 && u >= l2.b) { this.lane = l2.to; }
