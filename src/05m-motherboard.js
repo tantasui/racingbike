@@ -329,3 +329,22 @@ MOBO.buildScenery = function () {
     const mat = patch(new THREE.MeshBasicMaterial({ color: 0xffffff }));
     const m = inst(new THREE.BoxGeometry(1, 1, 1), mat, items);
     MOBO.leds = { m, s: ss, n: ss.length, hue: ss.map((_, i) => hash2(i, 3)) }; }
+  // --- close scenery that whips past: SMD resistors / capacitors / small chips on the shoulders
+  { const smd = [], smdC = [], tiny = [];
+    for (let s = 12; s < T.len - 30; s += 4 + rnd() * 5) { const p = sideSpot(s, .9, 2.4); if (!p) continue; const k = rnd();
+      if (k < .45) smd.push({ x: p.x, y: p.y + .25, z: p.z, ry: -p.th + R(-.3, .3), sx: 1.6, sy: .5, sz: .8, c: [.08, .08, .09] });
+      else if (k < .8) smdC.push({ x: p.x, y: p.y + .35, z: p.z, ry: -p.th, sx: 1.3, sy: .7, sz: .9, c: [.62, .5, .3] });
+      else tiny.push({ x: p.x, y: p.y, z: p.z, ry: -p.th + PI / 2 + R(-.2, .2), s: R(1.2, 1.8) }); }
+    inst(new THREE.BoxGeometry(1, 1, 1), patch(new THREE.MeshLambertMaterial({ color: 0xffffff })), smd.concat(smdC));
+    if (A) moboInst(moboParts(A.chipS), tiny, chipSwap); }
+  // --- capacitor towers: Capacitor Forest is dense with them, sparse elsewhere; a few stand on the board as obstacles
+  { const sleeve = [], tops = [], stripes = [], cols = [[.08, .1, .32], [.05, .05, .07], [.3, .06, .3], [.02, .2, .22]];
+    const add = (x, y, z, r, h, ci) => { const c = cols[ci % 4]; sleeve.push({ x, y: y + h / 2 - .3, z, sx: r, sy: h, sz: r, c }); tops.push({ x, y: y + h - .3, z, sx: r * .98, sy: .25, sz: r * .98 }); stripes.push({ x: x + r * .02, y: y + h / 2 - .3, z: z + r * .02, sx: r * 1.01, sy: h * .98, sz: r * 1.01, ry: rnd() * TAU }); };
+    for (let s = zs(2) - 20; s < zs(3) + 30; s += 7 + rnd() * 6) for (const sd of [-1, 1]) { const p = sideSpot(s, 3, 40, sd); if (!p) continue; const h = R(8, 26) * (1 + p.e / 40), r = R(2.2, 5); add(p.x, p.y, p.z, r, h, (rnd() * 4) | 0); solid(s, p.d, r); }
+    for (let s = 60; s < T.len - 60; s += 60 + rnd() * 80) { const p = sideSpot(s, 4, 26); if (p) { const r = R(2, 4); add(p.x, p.y, p.z, r, R(7, 18), (rnd() * 4) | 0); solid(s, p.d, r); } }
+    for (const t of MOBO.towers) { const p = onTrack(t.s, t.d); add(p.x, p.y, p.z, t.r, R(9, 16), 0); }
+    for (const c of MOBO.caps) { const w = arrAt(T.wid, c.s), sd = c.d > 0 ? 1 : -1, p = onTrack(c.s, sd * (w + 2.2)); if (!p.void || p.e < 3) add(p.x, p.y, p.z, 1.6, 6, 3); }
+    const cyl = new THREE.CylinderGeometry(1, 1, 1, 20), stripeG = new THREE.CylinderGeometry(1, 1, 1, 20, 1, true, 0, .7);
+    inst(cyl, patch(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .35, metalness: .1, envMap: A && A.env })), sleeve);
+    inst(cyl, A ? moboMat({ uuid: 'cap-top', name: 'cap-top' }, 'silver') : M(0xbbbbbb), tops);
+    inst(stripeG, patch(new THREE.MeshLambertMaterial({ color: 0xd8dde6, side: THREE.DoubleSide })), stripes); }
