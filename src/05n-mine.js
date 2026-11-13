@@ -96,3 +96,20 @@ function mineTrack() {
   M.beamDef = [[780, 0, 0], [540, 1, 0], [1640, 0, 0], [935, 0, 1], [1745, 0, 2], [1190, 0, 1]].map(([u, lane, lap]) => ({ u, lane, lap }));
   M.ventDef = [[850, 0, 1, 0], [1600, 0, -1, 0], [530, 0, 1, 1], [1340, 0, -1, 1], [1730, 0, 1, 2]].map(([u, lane, side, lap], i) => ({ u, lane, side, lap, ph: i * 1.7 }));
 }
+function mineLP(l, u, o) {
+  let j = u - l.a; const n = l.n - 1; if (j < 0) j = 0; else if (j > n) j = n; const i = Math.min(n - 1, j | 0), f = j - i, g = 1 - f;
+  o.x = l.px[i] * g + l.px[i + 1] * f; o.y = l.py[i] * g + l.py[i + 1] * f; o.z = l.pz[i] * g + l.pz[i + 1] * f;
+  o.tx = l.tx[i] * g + l.tx[i + 1] * f; o.ty = l.ty[i] * g + l.ty[i + 1] * f; o.tz = l.tz[i] * g + l.tz[i + 1] * f;
+  o.k = l.k[i] * g + l.k[i + 1] * f; o.sc = l.sc[i] * g + l.sc[i + 1] * f; o.ox = l.ox[i] * g + l.ox[i + 1] * f; o.oy = l.oy[i] * g + l.oy[i + 1] * f; return o;
+}
+// like mineLP but follows the rails backwards / forwards through junctions and merges and across the lap line
+function mineLPx(li, u, o) {
+  const M = MINE; let l = M.lanes[li], g = 0;
+  while (g++ < 6) { if (li === 0) { u = ((u % M.L) + M.L) % M.L; break; } if (u < l.a) li = l.from; else if (u > l.b) li = l.to; else break; l = M.lanes[li]; }
+  mineLP(M.lanes[li], u, o); o.lane = li; o.u = u; return o;
+}
+const mineGapOn = g => g.bridgeT <= 0 && (g.dyn ? g.open : MINE.lapLead >= g.lap);
+function mineGapAt(li, u) { for (const g of MINE.lanes[li].gaps) if (u >= g.a && u < g.b && mineGapOn(g)) return g; return null; }
+function mineNextGap(li, u, range) { let best = null; for (const g of MINE.lanes[li].gaps) if (mineGapOn(g) && g.a > u - .5 && g.a - u < range && (!best || g.a < best.a)) best = g; return best; }
+const mineDU = (a, b) => { const L = MINE.L; return ((b - a) % L + L * 1.5) % L - L / 2; }; // signed distance a -> b along the loop
+const MQ = {}, MQ2 = {}, MQ3 = {};
