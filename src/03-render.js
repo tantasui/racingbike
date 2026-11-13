@@ -181,7 +181,7 @@ void main(){
   col=col*uGrade+uLift;                                                        // per-world grade (identity unless set)
   vec2 v=vUv-.5; col*=1.-dot(v,v)*.75;
   gl_FragColor=vec4(col,1.);
-}`, { tS: { value: null }, tB: { value: null }, uBloom: { value: .5 }, uBlur: { value: 0 }, uWhite: { value: 0 }, uFlash: { value: 0 }, uAsp: { value: 1 }, uSat: { value: 1.12 }, uC: { value: new THREE.Vector2(.5, .5) }, uTint: { value: new THREE.Color(1, .6, .2) } });
+}`, { tS: { value: null }, tB: { value: null }, uBloom: { value: .5 }, uStretch: { value: 0 }, uHeat: { value: 0 }, uLines: { value: 0 }, uTimeP: uTime, uGrade: { value: new THREE.Vector3(1, 1, 1) }, uLift: { value: new THREE.Vector3(0, 0, 0) }, uBlur: { value: 0 }, uWhite: { value: 0 }, uFlash: { value: 0 }, uAsp: { value: 1 }, uSat: { value: 1.12 }, uC: { value: new THREE.Vector2(.5, .5) }, uTint: { value: new THREE.Color(1, .6, .2) } });
   initFX();
   resize(); addEventListener('resize', resize);
 }
@@ -245,6 +245,8 @@ function colorAt(G, s, d, y, i, out) {
     if (T.crest[i] && P.crest) { c = mix3(c, P.crest, .55); g = .35; }
     if (T.rampF[i]) { const k = ((s / 4) | 0) % 2; c = mix3(c, P.ramp, k ? .75 : .3); g = k ? .7 : .15; }
     if (G.edge < 1.3) { c = mix3(c, P.edge, .75); g = .4; }
+    for (const k of T.kicks) if (s > k.s0 - .5 && s < k.s0 + k.len + .5 && Math.abs(d - k.d) < k.hw + .6) { const st = ((s - k.s0) / 3 | 0) % 2; c = mix3(c, P.ramp, st ? .9 : .45); g = st ? .9 : .3; }
+    for (const p of T.pads) if (Math.abs(s - p.s) < 4.2 && Math.abs(d - p.d) < 2.6) { const st = (((s - p.s + 8) / 2) | 0) % 2; c = st ? [.35, 1.7, .75] : [.1, .55, .3]; g = st ? 1.1 : .3; }
     for (const p of T.pools) { const q = Math.hypot(s - p.s, d - p.d); if (q < p.r + 1.2) { c = q < p.r ? P.lava : mix3(P.lava, c, .6); g = q < p.r ? 1.1 : .4; } }
     for (const p of T.geysers) { const q = Math.hypot(s - p.s, d - p.d); if (q < 3.4) { c = [.5, 1.3, 1.5]; g = q > 1.8 ? .9 : .25; } }
   } else if (G.reg === 1) { c = mix3(P.branch, P.road2, n * .4); if (G.edge < 1.1) { c = P.edge2; g = .45; } }
