@@ -465,7 +465,7 @@ function decal(x, y, z, yaw, slope, sx, sz, r, g, b, life) {
   _o3.position.set(x, y + .07, z); _o3.rotation.set(Math.atan(slope), -yaw, 0, 'YXZ'); _o3.scale.set(sx, 1, sz); _o3.updateMatrix(); FXD.mesh.setMatrixAt(i, _o3.matrix);
   FXD.life[i] = FXD.max[i] = life; FXD.c[i * 3] = r; FXD.c[i * 3 + 1] = g; FXD.c[i * 3 + 2] = b; FXD.mesh.instanceMatrix.needsUpdate = true;
 }
-function clearFX() { FXP.life.fill(0); FXD.life.fill(0); }
+function clearFX() { FXP.life.fill(0); FXD.life.fill(0); _col.setRGB(0, 0, 0); for (let i = 0; i < DMAX; i++) FXD.mesh.setColorAt(i, _col); FXD.mesh.instanceColor.needsUpdate = true; }
 function updateFX(dt) {
   const P = FXP;
   for (let i = 0; i < PMAX; i++) {
