@@ -602,3 +602,22 @@ MOBO.dressRacer = function (r) {
     b.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.material = moboMat(o.material); } });
     const holder = new THREE.Group(); holder.add(b); r.mount.g.add(holder); r.mb.bike = holder;
   }
+};
+function playClip(r, name, fade = .12) { const M = r.mb; if (!M || M.cur === name) return; const a = M.act[name], b = M.act[M.cur]; if (!a) return; a.reset(); a.setEffectiveWeight(1); a.play(); if (b) b.crossFadeTo(a, fade, false); M.cur = name; }
+MOBO.racerVis = function (r, dt) {
+  const M = r.mb; if (!M) { if (r.viaRoll) r.pivot.rotation.z += r.viaRoll; return; }
+  // clip choice
+  const down = r.state === 1;
+  if (down) playClip(r, 'crash', .08);
+  else if (r.atkT > 0) playClip(r, r.atkSide < 0 ? 'punch' : 'kick', .06);
+  else if (M.cur !== 'riding' && (M.cur === 'crash' || !M.act[M.cur].isRunning() || M.act[M.cur].time > M.act[M.cur].getClip().duration * .75)) playClip(r, 'riding', .25);
+  M.mixer.update(dt);
+  // attacks face the side being hit; lean forward with speed; flinch when hit
+  const turnT = r.atkT > 0 && !down ? (r.atkSide < 0 ? .9 : -1.2) : 0; M.turn += (turnT - M.turn) * Math.min(1, dt * 14); M.m.rotation.y = PI + M.turn;
+  if (M.spine && !down) { M.spine.rotation.x += .25 + Math.min(.35, r.v / 90) + r.charge * .3; M.spine.rotation.z += -r.steerSm * .25 + (r.flash > 0 ? Math.sin(GM.t * 60) * .25 : 0); }
+  // suspension: a spring on the body reacting to bumps, seams and solder joints
+  ground(r.s, r.d, G0); const gy = G0.y;
+  if (!r.air && !down && M.lastGy !== null) { const dv = (gy - M.lastGy) / Math.max(dt, 1e-3) - r.vy; M.suspV -= clamp(dv, -30, 30) * .02; }
+  M.lastGy = gy; M.suspV += (-M.susp * 220 - M.suspV * 14) * dt; M.susp = clamp(M.susp + M.suspV * dt, -.16, .12);
+  r.body.position.y = -1 + M.susp; r.rider.g.position.y += M.susp * .6;
+  if (r.viaRoll) r.pivot.rotation.z += r.viaRoll; // upside down on the underside of the board
