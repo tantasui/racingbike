@@ -407,3 +407,22 @@ MOBO.buildScenery = function () {
     inst(new THREE.BoxGeometry(1, 1, 1), shell, parts); inst(new THREE.BoxGeometry(1, 1, 1), gold, contacts); }
   // --- spark arcs (chip pins) and solder blobs live in the world group too
   MOBO.arcs = inst(new THREE.BoxGeometry(1, 1, 1), MB(1.6, 2.4, 2.6), Array.from({ length: 200 }, () => ({ x: 0, y: -1e4, z: 0, s: 0 })));
+  const bg = new THREE.IcosahedronGeometry(1, 2); worldGeos.push(bg);
+  MOBO.blobMat = patch(new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xff7a1a, roughness: .25, metalness: .9, envMap: A && A.env }));
+  MOBO.blobMesh = new THREE.InstancedMesh(bg, MOBO.blobMat, 24); MOBO.blobMesh.frustumCulled = false; MOBO.blobMesh.count = 0; world.add(MOBO.blobMesh);
+  MOBO.blobMesh.setColorAt(0, new THREE.Color(1, 1, 1));
+  // --- post look: cool blue-green grade
+  const C = mComp.uniforms; C.uGrade.value.set(.97, 1.02, 1.0); C.uLift.value.set(0, .004, .006);
+};
+function EX_clone(o) { return window.THREE_EX && THREE_EX.SkeletonUtils ? THREE_EX.SkeletonUtils.clone(o) : o.clone(); }
+// pin positions of a DIP chip, measured from its geometry (feet below the body)
+function moboPins(gltf) {
+  const P = moboParts(gltf), H = P.size.y, pts = [];
+  for (const p of P.parts) { if (/black/i.test(p.m.name)) continue; const a = p.g.attributes.position; for (let i = 0; i < a.count; i++) if (a.getY(i) < H * .12) pts.push([a.getX(i), a.getZ(i)]); }
+  if (!pts.length) return { x: [-.53, -.18, .18, .53], w: .09, rowZ: .7 };
+  pts.sort((a, b) => a[0] - b[0]); const cl = []; let cur = [pts[0]];
+  for (let i = 1; i < pts.length; i++) { if (pts[i][0] - pts[i - 1][0] > .1) { cl.push(cur); cur = []; } cur.push(pts[i]); } cl.push(cur);
+  const xs = cl.map(c => (c[0][0] + c[c.length - 1][0]) / 2), w = Math.max(...cl.map(c => c[c.length - 1][0] - c[0][0]));
+  const rowZ = pts.reduce((a, p) => a + Math.abs(p[1]), 0) / pts.length;
+  return { x: xs, w, rowZ };
+}
