@@ -336,3 +336,17 @@ function mineFx(type, r, a) {
     case 'nouse': if (P) popup('NO TARGET', 'bad'); break;
     case 'locked': if (P) { popup('BRAKES LOCKED!', 'bad'); AU.tone(300, .3, { to: 200, type: 'square', vol: .16 }); } else if (a.isP && !GM.demo) popup('BRAKE LOCK HIT', 'good'); break;
     case 'sling': if (P) { popup('SLINGSHOT!', 'combo'); AU.boost(); } break;
+    case 'oiled': if (P) { popup('OIL SLICK!', 'bad'); AU.noise(.4, { f: 500, to: 200, vol: .2 }); } break;
+    case 'ramp': if (near) AU.jump(); if (P) popup('SPARE RAIL RAMP!', 'info'); break;
+    case 'boost': if (near) AU.boost(); break;
+    case 'boom': burst(a.x, a.y + .8, a.z, 90, 17, .9, .7, [2.8, 1.3, .25], 8); burst(a.x, a.y + .8, a.z, 30, 6, 1.4, 1.2, [.9, .35, .1], -1); if (!GM.demo && GM.player.pos.distanceTo(_mV.set(a.x, a.y, a.z)) < 90) { AU.crash(); AU.tone(60, .8, { to: 26, vol: .7 }); AU.noise(.9, { f: 500, to: 60, vol: .5, type: 'lowpass' }); cam.shake = Math.max(cam.shake, 1); cam.flash = Math.max(cam.flash, .4); } break;
+    case 'haz': burst(x, y + 1, z, 16, 7, .5, .3, [1.6, 1, .5], 10); if (P) { popup(a, 'bad'); AU.hit(); cam.shake = 1; PAD.rumble(.9, .5, 300); } break;
+    case 'creak': if (near) { AU.tone(170 + Math.random() * 60, .35, { to: 110, type: 'sawtooth', vol: .07 }); AU.noise(.3, { f: 700, to: 300, vol: .08, q: 3 }); } break;
+    case 'collapse': if (!GM.demo) { AU.crash(); AU.noise(1.2, { f: 400, to: 90, vol: .4, type: 'lowpass' }); } if (P) popup('TRESTLE COLLAPSING!', 'bad'); break;
+  }
+}
+// ---------------------------------------------------------------- continuous sound: wheel clack, rail screech, the locomotive, lava
+function mineAudio(dt, p) {
+  const M = MINE, V = MV, c = AU.ctx; if (!c) return; const K = M.loco, d = p.prog - K.prog, prox = clamp(1 - d / 230, 0, 1), on = p.mode === 0;
+  AU.frame(p.mode === 2 ? 0 : p.v, 1, !on, p.boostT > 0 || p.surgeT > 0, prox * prox * .95);
+  if (!V.scr) { const s = c.createBufferSource(); s.buffer = AU.nb; s.loop = true; const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2900; f.Q.value = 7; const g = c.createGain(); g.gain.value = 0; s.connect(f); f.connect(g); g.connect(AU.master); s.start(); V.scr = { g, f }; }
