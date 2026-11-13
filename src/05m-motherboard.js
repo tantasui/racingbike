@@ -232,3 +232,22 @@ MOBO.U = {
 let pcbMat = null;
 MOBO.buildTerrain = function () {
   moboSetupTrack();
+  const T = track, HW = 62, NC = HW, CH = 64, cols = NC + 1, U = MOBO.U;
+  if (!pcbMat) pcbMat = new THREE.ShaderMaterial({ uniforms: Object.assign({ uBC: BU.uBC, uBD: BU.uBD, uBP: BU.uBP, uTime, uFogC, uFogD, uHL, uHLC }, U), vertexShader: PCB_VS, fragmentShader: PCB_FS, side: THREE.DoubleSide, extensions: { derivatives: true } });
+  U.uZB.value = MOBO.zb.slice(0, 7).map((v, i) => i === 0 ? -99 : v); while (U.uZB.value.length < 7) U.uZB.value.push(-99);
+  U.uFin.value = T.fin; U.uLW.value.set(...MOBO.laneW);
+  MOBO.vias.forEach((v, i) => { if (i < 2) { U.uVia.value[i * 2].set(v.s0, v.d0, v.r, 0); U.uVia.value[i * 2 + 1].set(v.s1, v.d1, v.r, 1); } });
+  const h = MOBO.hot[0]; if (h) U.uHot.value.set(h.s0, h.s1, h.side * (arrAt(T.wid, (h.s0 + h.s1) / 2) + 1 + 4.5), 0);
+  const fl = new Uint8Array(T.N); // ramp / pad flags per row & lateral range (stored per vertex below)
+  for (let c0 = 0; c0 < T.N - 1; c0 += CH) {
+    const c1 = Math.min(c0 + CH, T.N - 1), rows = c1 - c0 + 1, nv = rows * cols;
+    const pos = new Float32Array(nv * 3), sd = new Float32Array(nv * 2), info = new Float32Array(nv * 4), lane = new Float32Array(nv * 3); let v = 0;
+    for (let r = 0; r < rows; r++) {
+      const i = c0 + r, s = i * DS, th = T.th[i], k = T.kap[i], ct = Math.cos(th), st = Math.sin(th);
+      let zone = 0; while (zone < 5 && s >= MOBO.zb[zone + 1]) zone++;
+      for (let j = 0; j <= NC; j++, v++) {
+        const d = -HW + j * 2; let dd = d; if (k * d > .8) dd = .8 / k;
+        ground(s, d, GV); const x = T.cx[i] + ct * dd, z = T.cz[i] + st * dd;
+        let y = GV.y;
+        if (GV.reg === 3) y += Math.floor(GV.e / 3) * .6;                         // stepped component walls
+        pos[v * 3] = x; pos[v * 3 + 1] = y; pos[v * 3 + 2] = z; sd[v * 2] = s; sd[v * 2 + 1] = d;
