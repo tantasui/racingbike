@@ -237,3 +237,17 @@ void main(){ if(vBZ>uBD.z||vBA>3.1416)discard;
     const rope = new THREE.Mesh(new THREE.BoxGeometry(.07, 6, .07), T.iron); rope.position.y = -3; const bk = new THREE.Mesh(new THREE.CylinderGeometry(.75, .5, 1.1, 10), T.rust); bk.position.y = -6.3; const sw = new THREE.Group(); sw.add(rope, bk); piv.add(sw);
     const fr = new THREE.Mesh(new THREE.BoxGeometry(7, .3, .3), T.timber); piv.add(fr); for (const o of [rope, bk, fr]) { o.frustumCulled = false; worldGeos.push(o.geometry); } world.add(piv); return { b, sw }; });
   V.rocks = M.rockDef.map(k => { const p = sideOf(k.lane, k.u, 0, 0), me = new THREE.Mesh(new THREE.IcosahedronGeometry(1.05, 0), T.rock); me.frustumCulled = false; world.add(me); worldGeos.push(me.geometry); return { k, p, me }; });
+  { const cm = new THREE.MeshBasicMaterial(); cm.color.setRGB(2.4, 1.5, .25); patch(cm); const cg = new THREE.BoxGeometry(.62, .62, .62); worldGeos.push(cg);
+    V.picks = M.pickDef.map(([lane, u]) => { const p = sideOf(lane, u, 0, .95), me = new THREE.Mesh(cg, cm); me.position.set(p.x, p.y, p.z); me.frustumCulled = false; world.add(me); return me; }); }
+  // --- pooled dynamic props: dynamite, oil slicks, spare-rail ramps
+  const pool = (n, geo, mat) => Array.from({ length: n }, () => { const me = new THREE.Mesh(geo, mat); me.visible = false; me.frustumCulled = false; world.add(me); return me; });
+  { const dg = new THREE.CylinderGeometry(.09, .09, .5, 8); dg.rotateX(PI / 2); const og = new THREE.CircleGeometry(1.3, 14); og.rotateX(-PI / 2); const rg = new THREE.BoxGeometry(G * 2 + .3, .1, 3.2); worldGeos.push(dg, og, rg);
+    const om = new THREE.MeshBasicMaterial({ transparent: true, opacity: .85, depthWrite: false }); om.color.setRGB(.28, .1, .5); patch(om);
+    V.proj = pool(4, dg, MB(2.6, .3, .2)); V.slick = pool(5, og, om); V.ramp = pool(3, rg, M_(0xb0b6c0, 0x202428)); }
+  // --- the locomotive
+  { const g = new THREE.Group(), add = (geo, mat, x, y, z, rx = 0, rz = 0) => { const me = new THREE.Mesh(geo, mat); me.position.set(x, y, z); me.rotation.set(rx, 0, rz); me.frustumCulled = false; g.add(me); worldGeos.push(geo); return me; };
+    const blk = M_(0x16161a), red = M_(0x5a1410, 0x1a0402);
+    add(new THREE.CylinderGeometry(1.05, 1.05, 4.6, 14), blk, 0, 2.05, -1.2, PI / 2); add(new THREE.BoxGeometry(2.5, 2.6, 2.3), blk, 0, 2.5, 2.1); add(new THREE.BoxGeometry(2.7, .16, 2.6), red, 0, 3.86, 2.1);
+    add(new THREE.CylinderGeometry(.34, .26, 1.3, 10), blk, 0, 3.6, -2.7); add(new THREE.CylinderGeometry(.4, .4, .5, 10), blk, 0, 3.3, -.9); add(new THREE.BoxGeometry(2.3, .5, 7), red, 0, .95, 0);
+    add(new THREE.ConeGeometry(1.5, 1.6, 4), red, 0, .75, -4.1, -PI / 2, PI / 4);
+    V.locoWheels = []; for (const z of [-2.4, -.6, 1.2, 2.6]) for (const sd of [-1, 1]) { const wg = new THREE.CylinderGeometry(.62, .62, .14, 12); V.locoWheels.push(add(wg, red, sd * (G + .04), .62, z, 0, PI / 2)); }
