@@ -71,7 +71,7 @@ function initRender() {
   // --- sky with focal vortex (fullscreen)
   skyMat = new THREE.ShaderMaterial({
     depthTest: false, depthWrite: false,
-    uniforms: { uVC: { value: new THREE.Vector2() }, uAsp: { value: 1 }, uTime, uType: { value: 0 }, cA: { value: new THREE.Color() }, cB: { value: new THREE.Color() }, cC: { value: new THREE.Color() }, cD: { value: new THREE.Color() } },
+    uniforms: { uVC: { value: new THREE.Vector2() }, uAsp: { value: 1 }, uTime, uType: { value: 0 }, uFan: { value: 0 }, uFanP: { value: 0 }, uPow: { value: 0 }, cA: { value: new THREE.Color() }, cB: { value: new THREE.Color() }, cC: { value: new THREE.Color() }, cD: { value: new THREE.Color() } },
     vertexShader: 'varying vec2 vN; void main(){ vN=position.xy; gl_Position=vec4(position.xy,1.,1.); }',
     fragmentShader: NOISE_GLSL + `
 varying vec2 vN; uniform vec2 uVC; uniform float uAsp,uTime,uType; uniform vec3 cA,cB,cC,cD;
