@@ -29,6 +29,28 @@ addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 addEventListener('pointerdown', () => AU.init());
 
+// ---------------------------------------------------------------- gamepad (standard mapping; keyboard keeps working)
+// Left stick steer / air spin + flips · RT pedal · LT brake · A jump · X punch · B kick · RB boost · Y trick · Start pause
+const PAD = {
+  on: false, steer: 0, sy: 0, acc: 0, brake: 0, b: [], hit: {}, nav: {}, pn: {}, gp: null,
+  poll() {
+    const list = navigator.getGamepads ? [...navigator.getGamepads()] : [];
+    const gp = list.find(g => g && g.connected && g.mapping === 'standard') || list.find(g => g && g.connected);
+    this.hit = {}; this.nav = {};
+    if (!gp) { if (this.on) { this.on = false; toast('CONTROLLER DISCONNECTED'); } this.steer = this.sy = this.acc = this.brake = 0; this.b = []; this.gp = null; return; }
+    if (!this.on) { this.on = true; toast('🎮 CONTROLLER CONNECTED'); }
+    this.gp = gp;
+    const dz = v => Math.abs(v) < .15 ? 0 : Math.sign(v) * (Math.abs(v) - .15) / .85; // 0.15 deadzone
+    const val = i => gp.buttons[i] ? (gp.buttons[i].value || (gp.buttons[i].pressed ? 1 : 0)) : 0;
+    this.steer = dz(gp.axes[0] || 0); this.sy = dz(gp.axes[1] || 0); this.acc = val(7); this.brake = val(6);
+    for (let i = 0; i < 16; i++) { const d = val(i) > .5; if (d && !this.b[i]) { this.hit[i] = true; AU.init(); } this.b[i] = d; }
+    const dirs = { left: this.steer < -.5 || this.b[14], right: this.steer > .5 || this.b[15], up: this.sy < -.5 || this.b[12], down: this.sy > .5 || this.b[13] };
+    for (const k in dirs) { if (dirs[k] && !this.pn[k]) this.nav[k] = true; this.pn[k] = dirs[k]; }
+  },
+  rumble(strong, weak, ms) { const a = this.gp && this.gp.vibrationActuator; if (a && a.playEffect) { try { const p = a.playEffect('dual-rumble', { duration: ms, strongMagnitude: clamp(strong, 0, 1), weakMagnitude: clamp(weak, 0, 1) }); if (p && p.catch) p.catch(() => { }); } catch (e) { } } }
+};
+function toast(t) { const e = $('toast'); if (!e) return; e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2600); }
+
 // ---------------------------------------------------------------- audio (all synthesized)
 const AU = {
   ctx: null, muted: false, musicOn: true,
