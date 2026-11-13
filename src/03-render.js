@@ -74,7 +74,7 @@ function initRender() {
     uniforms: { uVC: { value: new THREE.Vector2() }, uAsp: { value: 1 }, uTime, uType: { value: 0 }, uFan: { value: 0 }, uFanP: { value: 0 }, uPow: { value: 0 }, cA: { value: new THREE.Color() }, cB: { value: new THREE.Color() }, cC: { value: new THREE.Color() }, cD: { value: new THREE.Color() } },
     vertexShader: 'varying vec2 vN; void main(){ vN=position.xy; gl_Position=vec4(position.xy,1.,1.); }',
     fragmentShader: NOISE_GLSL + `
-varying vec2 vN; uniform vec2 uVC; uniform float uAsp,uTime,uType; uniform vec3 cA,cB,cC,cD;
+varying vec2 vN; uniform vec2 uVC; uniform float uAsp,uTime,uType,uFan,uFanP,uPow; uniform vec3 cA,cB,cC,cD;
 mat2 rt(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
 float starf(vec2 g,float th){ vec2 id=floor(g),f=fract(g)-.5; float h=h21(id); vec2 o=(vec2(h21(id+3.7),h21(id+7.3))-.5)*.6; return step(th,h)*smoothstep(.2,.0,length(f-o))*(.55+.45*sin(uTime*3.+h*50.)); }
 void main(){
@@ -108,6 +108,22 @@ void main(){
     col=mix(col,cC*mix(.6,1.,clamp(p.y*1.6+.6,0.,1.)),sd*bar);
     float m=smoothstep(.48,.76,cl)*smoothstep(.36,.62,r);
     col=mix(col,cD*(.8+.4*cl2),m*.8);
+  } else if(uType>5.5){
+    // MOLTEN MINE: black rock overhead, lava glow welling up from below the horizon
+    float hy=p.y; col=mix(cB,cA,smoothstep(-.4,.22,hy));
+    col+=cC*.2*exp(-abs(hy+.3)*5.)*(.7+.3*cl);
+    col+=cD*starf(q*30.+vec2(0.,uTime*.4),.93)*.45*smoothstep(.15,-.3,hy);
+  } else if(uType>4.5){
+    // MOTHERBOARD: a dark room seen from the board; a desk lamp up-left, blurred room lights, a monitor glow ahead
+    vec2 sp=p; float hy=sp.y;
+    col=mix(cB,cA,smoothstep(-.02,.9,hy));                                                   // wall darkens upward from the horizon
+    col+=vec3(.02,.035,.04)*smoothstep(.25,-.05,hy);                                          // haze at the horizon
+    for(int i=0;i<10;i++){ float fi=float(i); vec2 c=vec2(h21(vec2(fi,1.))*4.4-2.2,h21(vec2(fi,7.))*.7+.08); float bk=smoothstep(.09,.03,length(sp-c)); col+=mix(vec3(.3,.7,.6),vec3(1.,.65,.35),h21(vec2(fi,3.)))*bk*.05; } // soft bokeh
+    vec2 lp=sp-vec2(-1.15,.58); col+=cC*(exp(-length(lp)*2.6)*.28+exp(-length(lp)*14.)*.9);          // desk lamp = the sun
+    col+=cC*.07*exp(-abs(sp.x+1.15+sp.y*.3)*4.)*smoothstep(.58,0.,hy);                             // its light cone
+    vec2 mp=sp-vec2(.25,.32); float mon=smoothstep(.02,0.,max(abs(mp.x)-.55,abs(mp.y)-.22));       // monitor out of focus
+    col=mix(col,vec3(.05,.08,.1)+vec3(.04,.07,.09)*smoothstep(.3,0.,length(mp*vec2(.5,1.))),mon*.8);
+    col+=cD*.25*uPow*exp(-length(sp)*2.);
   } else {
     float st=starf(q*40.,.8)*1.8+starf(q*95.+11.,.86)*1.1+starf(q*17.,.93)*2.6;
     col+=vec3(1.,.95,.85)*st*smoothstep(.03,.22,r);
