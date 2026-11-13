@@ -426,3 +426,23 @@ function moboPins(gltf) {
   const rowZ = pts.reduce((a, p) => a + Math.abs(p[1]), 0) / pts.length;
   return { x: xs, w, rowZ };
 }
+MOBO.reset = function () {
+  scene.environment = null; const C = mComp.uniforms; C.uGrade.value.set(1, 1, 1); C.uLift.value.set(0, 0, 0); C.uStretch.value = 0; C.uLines.value = 0;
+  skyMat.uniforms.uFan.value = 0; skyMat.uniforms.uPow.value = 0; MOBO.fp = false; MOBO.slowT = 0; $('hud').classList.remove('mb');
+};
+
+// ---------------------------------------------------------------- PHASE 3: mechanics
+const pulseAt = (k, s) => { const U = MOBO.U, ph = [U.uPh.value.x, U.uPh.value.y, U.uPh.value.z][k], L = U.uPL.value; return ((((s - uTime.value * U.uPS.value - ph) / L) % 1) + 1) % 1 * L - L / 2; };
+function onLane(r) { for (let k = 0; k < 3; k++) if (Math.abs(r.d - MOBO.laneAt(k, r.s)) < MOBO.laneW[k] + .25 && Math.abs(r.d) < arrAt(track.wid, r.s)) return k; return -1; }
+function arcState(c, row, g) { const per = 2.7, ph = (c * 1.7 + g * .83 + row * .45) % per, t = ((uTime.value + ph) % per + per) % per; return t < .95 ? 2 : t > per - .4 ? 1 : 0; } // 2 live, 1 warning, 0 safe
+// returns true when it fully handled this racer's movement (inside a via)
+MOBO.racerPre = function (r, dt, c) {
+  r.mbPrevS = r.s;
+  const v = r.via; if (!v) return false;
+  v.t += dt; const L = v.s1 - v.s0, sp = v.sp || (v.sp = Math.min(Math.max(r.v, 24) * 1.18, r.st.vmax * 1.25));
+  r.v = sp; r.s = Math.min(v.s1, r.s + sp * dt); const u = clamp((r.s - v.s0) / L, 0, 1);
+  r.d = lerp(v.d0, v.d1, sstep(0, 1, u)); r.a = r.beta = 0;
+  ground(r.s, r.d, G0); const under = G0.h - 2.6, dropIn = Math.min(1, v.t / .35);
+  r.y = lerp(ground(v.s0, v.d0, G1).y, under, dropIn); r.viaRoll = PI * dropIn; r.air = false; r.vy = 0;
+  if (r.s >= v.s1 - .5) { // pop out through the exit via
+    r.via = null; r.y = ground(r.s, r.d, G0).y + .2; r.vy = 12; r.air = true; r.airT = 0; r.takeoff(); r.inv = Math.max(r.inv, .6); evt('viaOut', r);
