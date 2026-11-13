@@ -485,3 +485,22 @@ MOBO.step = function (dt) {
   // trace intensity: steady glow with a slow per-trace flicker; power-up overdrives it
   const t = uTime.value; U.uTI.value.set(1 + .12 * Math.sin(t * 2.3), 1 + .12 * Math.sin(t * 1.7 + 2), 1 + .12 * Math.sin(t * 2.9 + 4));
   // zone banner
+  let z = 0; while (z < 5 && lead.s >= MOBO.zb[z + 1]) z++;
+  if (z !== MOBO.zone) { MOBO.zone = z; if (!GM.demo) { $('mbZone').textContent = MB_ZONES[z]; $('mbZone').classList.remove('in'); void $('mbZone').offsetWidth; $('mbZone').classList.add('in'); } }
+  $('hWarn').textContent = !GM.demo && GM.player.hot ? '⚠ HOT ZONE — DRAINING HEALTH ⚠' : ($('hWarn').textContent.startsWith('⚠ HOT') ? '' : $('hWarn').textContent);
+  // chip pin arcs
+  if (MOBO.arcs) { let n = 0; const m = MOBO.arcs;
+    MOBO.chips.forEach((c, ci) => { if (!c.rows || Math.abs(c.s - lead.s) > 380) return; for (let row = 0; row < 2; row++) c.gaps.forEach((G, g) => {
+      const stt = arcState(ci, row, g); if (!stt) return; const rs = c.rows[row], live = stt === 2;
+      const segs = live ? 6 : 2, a0 = G.d0, a1 = G.d1;
+      for (let q = 0; q < segs && n < 200; q++) { const u0 = q / segs, u1 = (q + 1) / segs, j0 = (Math.random() - .5) * (live ? 1.6 : .5), j1 = (Math.random() - .5) * (live ? 1.6 : .5);
+        const p0 = onTrack(rs, lerp(a0, a1, u0)), p1 = onTrack(rs, lerp(a0, a1, u1)), y0 = p0.y + 1.6 + j0 + Math.sin(u0 * PI) * 1.5, y1 = p1.y + 1.6 + j1 + Math.sin(u1 * PI) * 1.5;
+        const dx = p1.x - p0.x, dy = y1 - y0, dz = p1.z - p0.z, L = Math.hypot(dx, dy, dz);
+        _o3.position.set((p0.x + p1.x) / 2, (y0 + y1) / 2, (p0.z + p1.z) / 2); _o3.lookAt(p1.x, y1, p1.z); _o3.scale.set(live ? .16 : .07, live ? .16 : .07, L); _o3.updateMatrix(); m.setMatrixAt(n++, _o3.matrix); }
+      if (live && Math.random() < dt * 20) { const p = onTrack(rs, lerp(a0, a1, Math.random())); spawnP(p.x, p.y + 1.8, p.z, (Math.random() - .5) * 6, Math.random() * 5, (Math.random() - .5) * 6, .35, .25, 1.2, 2, 2.4, 9); }
+    }); });
+    _o3.scale.set(0, 0, 0); _o3.position.set(0, -1e4, 0); _o3.updateMatrix(); for (let i = n; i < 200; i++) m.setMatrixAt(i, _o3.matrix); m.instanceMatrix.needsUpdate = true; }
+  // solder drops: fall, roll as hazards, then harden into new ramps
+  for (const zz of MOBO.solderZ) if (lead.s > zz.s0 - 60 && lead.s < zz.s1 && MOBO.blobs.filter(b => b.st < 2).length < 4) { MOBO.spawnT = (MOBO.spawnT || 0) - dt; if (MOBO.spawnT <= 0) { MOBO.spawnT = 1.4 + Math.random() * 1.6; const s = lead.s + 45 + Math.random() * 70; if (s < zz.s1 + 40) { const w = arrAt(T.wid, s) - 2; MOBO.blobs.push({ s, d: (Math.random() * 2 - 1) * w, y: ground(s, 0, G1).y + 34, vy: 0, st: 0, t: 0, vd: (Math.random() - .5) * 2 }); } } }
+  for (const b of MOBO.blobs) {
+    if (b.st === 0) { b.vy -= 32 * dt; b.y += b.vy * dt; const gy = ground(b.s, b.d, G1).y + 1; if (b.y <= gy) { b.y = gy; b.st = 1; b.t = 0; tpos(b.s, b.d, TP1); burst(TP1.x, gy, TP1.z, 26, 8, .7, .35, [2.2, 1.1, .35], 9); if (!GM.demo && Math.abs(b.s - lead.s) < 90) AU.thump(); }
