@@ -641,3 +641,22 @@ MOBO.camera = function (dt) {
     camera.position.set(_fp.x + fx * .05, _fp.y + .48 + bob + (p.mb ? p.mb.susp * .5 : 0), _fp.z + fz * .05);
     ground(p.s + 9, p.d, G1); camera.up.set(0, 1, 0); camera.lookAt(TP0.x + fx * 9, (G1.void ? p.y : G1.y) - .35, TP0.z + fz * 9);
     camera.rotateZ(-p.lean * .55 - cam.roll * .3); setBend(fx, fz);
+  }
+  // slow-motion zoom on big launches and knockouts
+  const fovT = cam.fov - slow * 13; camera.fov += (fovT - camera.fov) * Math.min(1, dt * 8); camera.updateProjectionMatrix();
+  // speed feel: speed lines + slight screen stretch on top of the radial blur and FOV widening
+  C.uLines.value = GM.demo || MOBO.pow >= 0 ? 0 : clamp((p.v - 30) / 14, 0, 1) * (.25 + boost * .35) * (1 - slow * .6);
+  C.uStretch.value = GM.demo ? 0 : clamp((p.v - 30) / 14, 0, 1) * .03 + boost * .015;
+  if (sp > 1) cam.shake = Math.max(cam.shake, (sp - 1) * .4);
+};
+// ---------------------------------------------------------------- sound: electrical hum bed, speed whine, samples, music with a filter that opens on boost
+function moboSfx(name, vol = .6, rate = 1, dur) {
+  const S = MOBO.snd, c = AU.ctx; if (!c || AU.muted || !vol) return; const b = S.buf[name]; if (!b) return;
+  const src = c.createBufferSource(), g = c.createGain(); src.buffer = b; src.playbackRate.value = rate; g.gain.value = vol; src.connect(g); g.connect(AU.master); src.start(0, 0, dur); }
+function moboAudioInit() {
+  const S = MOBO.snd, c = AU.ctx; if (!c || S.nodes) return;
+  S.nodes = {}; const N = S.nodes;
+  for (const k in S.raw) { const raw = S.raw[k]; delete S.raw[k]; c.decodeAudioData(raw).then(b => { S.buf[k] = b; if (k === 'dark_synthwave' && MOBO.wantMusic) MOBO.startMusic(); if (k === 'wind_loop') { const s = c.createBufferSource(); s.buffer = b; s.loop = true; s.connect(N.windG); s.start(); } }).catch(() => { }); }
+  N.humG = c.createGain(); N.humG.gain.value = 0; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
+  for (const [f, v] of [[60, .5], [120, .35], [180, .18], [240, .08]]) { const o = c.createOscillator(); o.type = f === 60 ? 'sawtooth' : 'sine'; o.frequency.value = f; const g = c.createGain(); g.gain.value = v; o.connect(g); g.connect(lp); o.start(); }
+  lp.connect(N.humG); N.humG.connect(AU.master);
