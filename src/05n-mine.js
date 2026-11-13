@@ -277,3 +277,19 @@ MINE.collide = function (dt) {
         }
       }
     } else if (!ghost && Math.abs(d) < 2 && a.pos.distanceToSquared(b.pos) < 1.7) {
+      // merge point: two rails become one and both carts are there — momentum decides who keeps the rail
+      const pa = a.stt.mass * a.v * (a.surgeT > 0 ? 2 : 1), pb = b.stt.mass * b.v * (b.surgeT > 0 ? 2 : 1), w = pa >= pb ? a : b, lo = w === a ? b : a;
+      mineLP(M.lanes[lo.lane], lo.u, MQ); mineLP(M.lanes[w.lane], w.u, MQ2); lo.lastBy = w; lo.lastByT = 2.5; mineFx('merge', w, lo);
+      lo.derail(Math.sign(MQ.ox - MQ2.ox) || 1, 'merge', 4.5); w.v *= .93;
+    }
+  }
+};
+function mineShove(r, side) {
+  if (r.mode === 2 || r.shCD > GM.time) return; r.shCD = GM.time + .45; const M = MINE, i = r.ci, hit = [];
+  for (const o of GM.racers) { if (o === r || o.mode === 2 || o.invT > 0) continue; const dx = o.pos.x - r.pos.x, dy = o.pos.y - r.pos.y, dz = o.pos.z - r.pos.z, al = dx * M.hx[i] + dz * M.hz[i], la = (dx * M.rx[i] + dz * M.rz[i]) * side; if (Math.abs(al) < 2.4 && la > .8 && la < 5 && Math.abs(dy) < 1.8) hit.push(o); }
+  for (const o of hit) { o.lastBy = r; o.lastByT = 2.5; if (o.mode === 0) { o.tipImp += side * .62; o.v *= .93; } else { o.vel.x += M.rx[i] * side * 4; o.vel.z += M.rz[i] * side * 4; } o.hurt(12, r); r.pts.hit += 50; }
+  mineFx('shove', r, { side, hit: hit.length });
+}
+
+// ---------------------------------------------------------------- PHASE 4: power-ups
+function mineAhead(r, range, sameLane) { let best = null, bd = range; for (const o of GM.racers) { if (o === r || o.mode === 2 || o.fin) continue; const d = o.prog - r.prog; if (d > .5 && d < bd && (!sameLane || o.lane === r.lane)) { bd = d; best = o; } } return best; }
