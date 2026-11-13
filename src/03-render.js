@@ -414,7 +414,7 @@ function buildScenery() {
     inst(new THREE.BoxGeometry(1, 1, 1), M(0x1a1626), dark); inst(new THREE.ConeGeometry(.6, 1, 4), MB(2.4, .5, 1.8), sign); }
 }
 function buildWorld(ci) {
-  clearWorld(); loadTrack(ci);
+  clearWorld(); if (window.MINE) MINE.reset(); if (COURSES[ci].mine) course = COURSES[ci]; else loadTrack(ci);
   const c = course, B = c.bend;
   BU.uBP.value.set(1 / B.R, B.twist, B.lift, B.R);
   uFogC.value.setRGB(c.fog[0], c.fog[1], c.fog[2]); uFogD.value = c.fogD; scene.fog.color.copy(uFogC.value); scene.fog.density = c.fogD;
