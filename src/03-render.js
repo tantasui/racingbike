@@ -171,8 +171,8 @@ void main(){
   uv.x+=sin(uv.y*64.+uTimeP*5.)*uHeat*.0022*smoothstep(.8,.15,uv.y);   // heat shimmer (0 = off)
   vec2 dir=uv-uC; float r=length(dir*vec2(uAsp,1.));
   float amt=uBlur*smoothstep(.16,.62,r);
-  vec3 col=vec3(0.); for(int i=0;i<8;i++){ col+=texture2D(tS,vUv-dir*amt*float(i)*.02).rgb; } col*=.125;
-  vec3 bl=texture2D(tB,vUv).rgb; col+=bl*uBloom;
+  vec3 col=vec3(0.); for(int i=0;i<8;i++){ col+=texture2D(tS,uv-dir*amt*float(i)*.02).rgb; } col*=.125;
+  vec3 bl=texture2D(tB,uv).rgb; col+=bl*uBloom;
   col+=uTint*uFlash*(.35+r*.9);
   float l=dot(col,vec3(.3,.59,.11)); col=mix(vec3(l),col,uSat);
   col=mix(col,vec3(.92,.96,1.05),uWhite*(.55+.45*smoothstep(.0,.7,r)));
