@@ -458,3 +458,19 @@ MINE.stepRace = function (dt) {
     if (GM.count > .4) { if (window.mineFrameVis) mineFrameVis(dt); return; }
   } else if ($('hCount').textContent && GM.count < -.6) $('hCount').textContent = '';
   if (GM.count <= 0) GM.count -= dt;
+  GM.time += dt;
+  let lead = 0; for (const r of R) lead = Math.max(lead, r.prog); M.lapLead = clamp(Math.floor(lead / M.L), 0, 2);
+  M.lavaY += ((-4 + Math.min(8.5, 3 * lead / M.L)) - M.lavaY) * Math.min(1, dt * .5);   // the lava rises through the race
+  const D = DIFFS[GM.diff], ref = GM.demo ? R.reduce((a, r) => a + r.prog, 0) / 6 : pl.prog;
+  for (const r of R) {
+    if (r.isP && !GM.demo && !r.fin && !GM.auto) { r.rb = 1; r.update(dt, minePlayerCtl(r)); continue; }
+    const gap = r.prog - ref; r.rb = (r.isP ? 1 : D.skill) * (gap < -60 ? 1 + Math.min(.1, (-gap - 60) / 900) : gap > 80 ? 1 - Math.min(.08, (gap - 80) / 1000) : 1);
+    r.update(dt, M.ai(r, dt));
+  }
+  M.collide(dt); M.stepItems(dt); M.stepHaz(dt); M.stepLoco(dt);
+  GM.order = R.slice().sort((a, b) => a.fin && b.fin ? a.finT - b.finT : a.fin ? -1 : b.fin ? 1 : b.prog - a.prog);
+  if (window.mineFrameVis) mineFrameVis(dt);
+  if (!GM.demo && GM.finWait > 0) { GM.finWait -= dt; if (GM.finWait <= 0) showResults(); }
+  if (GM.demo && (R.every(r => r.fin) || GM.time > 300)) MINE.newRace(true);
+};
+if (!window.mineFx) window.mineFx = function () { };
