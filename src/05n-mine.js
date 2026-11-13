@@ -146,3 +146,19 @@ class MineCart {
     if (this.mode === 0) { const P = mineLP(MINE.lanes[this.lane], this.u, MQ), i = this.ci = Math.round(this.u) % MINE.L; this.pos.set(P.x, P.y + .1, P.z); this.vel.set(P.tx * this.v * .8 + MINE.rx[i] * dir * 4.5, up, P.tz * this.v * .8 + MINE.rz[i] * dir * 4.5); }
     else this.vel.y = Math.max(this.vel.y, up);
     this.mode = 1; this.tumble = true; this.airT = 0; this.spin = dir * (5 + Math.random() * 4); this.grap = null; this.surgeT = 0;
+    mineFx('derail', this, why);
+    if (this.lastBy && this.lastByT > 0 && this.lastBy !== this) { this.lastBy.kos++; this.lastBy.pts.ko += 300; mineFx('ko', this.lastBy, this); this.lastBy = null; }
+  }
+  wreck(kind) {
+    if (this.mode === 2) return; this.mode = 2; this.wk = kind; this.wt = kind === 'lava' ? 2.4 : kind === 'crush' ? 2.2 : 1.5; this.v = 0; this.grap = null;
+    mineFx('wreck', this, kind);
+  }
+  respawn() {
+    const M = MINE, L = M.L; let u = this.u, lane = 0;
+    if (this.wk === 'lava') { let best = -1; for (const c of M.cps) if (c <= u && c > best) best = c; u = best < 0 ? Math.min(u, 10) : best; }
+    else if (this.wk === 'crush') { u = M.loco.u + 75; if (u >= L) { u -= L; if (this.u > L / 2) this.lap++; } }
+    else { let bd = 1e9; for (const l of M.lanes) if (l.id === 0 || (u >= l.a + 2 && u <= l.b - 2)) { mineLP(l, u, MQ); const d = Math.abs(MQ.ox - this.ox) + Math.abs(MQ.y - this.pos.y) * .5; if (d < bd) { bd = d; lane = l.id; } } }
+    if (lane === 0) u = ((u % L) + L) % L;
+    for (let g = 0; g < 30 && mineGapAt(lane, u); g++) u += 1.5; for (let g = 0; g < 30 && mineGapAt(lane, u + 4); g++) u += 1.5;
+    if (lane && u > M.lanes[lane].b - 1) { lane = M.lanes[lane].to; }
+    this.lane = lane; this.u = u; this.prog = this.lap * L + u; this.mode = 0; this.v = this.wk === 'crush' ? 20 : 17; this.tip = 0; this.tipImp = 0; this.tumble = false; this.health = 100; this.invT = 2.4; this.spin = 0;
