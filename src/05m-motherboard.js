@@ -504,3 +504,23 @@ MOBO.step = function (dt) {
   for (const zz of MOBO.solderZ) if (lead.s > zz.s0 - 60 && lead.s < zz.s1 && MOBO.blobs.filter(b => b.st < 2).length < 4) { MOBO.spawnT = (MOBO.spawnT || 0) - dt; if (MOBO.spawnT <= 0) { MOBO.spawnT = 1.4 + Math.random() * 1.6; const s = lead.s + 45 + Math.random() * 70; if (s < zz.s1 + 40) { const w = arrAt(T.wid, s) - 2; MOBO.blobs.push({ s, d: (Math.random() * 2 - 1) * w, y: ground(s, 0, G1).y + 34, vy: 0, st: 0, t: 0, vd: (Math.random() - .5) * 2 }); } } }
   for (const b of MOBO.blobs) {
     if (b.st === 0) { b.vy -= 32 * dt; b.y += b.vy * dt; const gy = ground(b.s, b.d, G1).y + 1; if (b.y <= gy) { b.y = gy; b.st = 1; b.t = 0; tpos(b.s, b.d, TP1); burst(TP1.x, gy, TP1.z, 26, 8, .7, .35, [2.2, 1.1, .35], 9); if (!GM.demo && Math.abs(b.s - lead.s) < 90) AU.thump(); }
+      else if (Math.random() < dt * 12) { tpos(b.s, b.d, TP1); decal(TP1.x, ground(b.s, b.d, G1).y, TP1.z, TP1.th, 0, 2.6, 2.6, 2.2, .3, .05, .3); } }
+    else if (b.st === 1) { b.t += dt; b.s += 12 * dt * (1 - b.t / 4); b.d = clamp(b.d + b.vd * dt, -arrAt(T.wid, b.s) + 2, arrAt(T.wid, b.s) - 2); b.y = ground(b.s, b.d, G1).y + 1;
+      if (Math.random() < dt * 14) { tpos(b.s, b.d, TP1); spawnP(TP1.x, b.y, TP1.z, (Math.random() - .5) * 3, 2 + Math.random() * 3, (Math.random() - .5) * 3, .5, .25, 2, 1, .3, 8); }
+      if (b.t > 3) { b.st = 2; b.t = 0; } }
+    else if (b.st === 2) { b.t += dt; if (b.t > 1) { b.st = 3; T.kicks.push(b.k = { s0: b.s - 4.5, len: 5, H: 1.4, d: b.d, hw: 2.3, dyn: 1 }); MOBO.ramps.push(b); } }
+  }
+  while (MOBO.ramps.length > 10) { const o = MOBO.ramps.shift(); const i = T.kicks.indexOf(o.k); if (i >= 0) T.kicks.splice(i, 1); o.dead = 1; }
+  MOBO.blobs = MOBO.blobs.filter(b => !b.dead);
+  { const m = MOBO.blobMesh; let n = 0; const col = new THREE.Color();
+    for (const b of MOBO.blobs) { if (n >= 24) break; tpos(b.s, b.d, TP1); const hard = b.st >= 2 ? Math.min(1, b.t + (b.st === 3 ? 1 : 0)) : 0;
+      _o3.position.set(TP1.x, b.st === 3 ? b.y - 1 : b.y, TP1.z); _o3.rotation.set(b.st === 1 ? b.t * 6 : 0, -TP1.th, 0, 'YXZ'); if (b.st === 3) _o3.scale.set(2.3, 1.45, 3.2); else _o3.scale.setScalar(1.6); _o3.updateMatrix(); m.setMatrixAt(n, _o3.matrix);
+      col.setRGB(lerp(2.4, .75, hard), lerp(1.1, .78, hard), lerp(.3, .8, hard)); m.setColorAt(n, col); n++; }
+    m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; MOBO.blobMat.emissiveIntensity = 1.6; }
+  // blackout after a knockout
+  if (MOBO.black > 0) MOBO.black = Math.max(0, MOBO.black - dt * .7); U.uBlack.value.set(MOBO.blackP.x, MOBO.blackP.y, MOBO.blackP.z, Math.min(1, MOBO.black));
+  // power-up after the winner crosses the line
+  if (MOBO.pow >= 0) { MOBO.pow += dt; U.uPow.value = Math.min(1, MOBO.pow / 1.5); skyMat.uniforms.uPow.value = U.uPow.value; }
+  // LEDs: twinkle; sweep on at power-up; dark inside a blackout
+  if (MOBO.leds && MOBO.leds.m && (GM.t * 60 | 0) % 2 === 0) { const L = MOBO.leds, m = L.m, col = new THREE.Color(), sweep = MOBO.pow >= 0 ? MOBO.pow / 2.6 * T.len : -1;
+    for (let i = 0; i < L.n; i++) { const s = L.s[i], h = L.hue[i]; let k = .25 + .35 * (Math.sin(t * (2 + h * 3) + h * 40) > .6 ? 1 : 0);
