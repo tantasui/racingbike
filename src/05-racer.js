@@ -99,7 +99,7 @@ class Racer {
       if (!this.air) {
         if (c.jump) this.charge = Math.min(1, this.charge + dt / .55);
         else if (this.charge > 0) {
-          const lip = nearLip(this.s) && this.v > 12;
+          const lip = nearLip(this.s, this.d) && this.v > 12;
           this.vy = Math.max(this.vy, -2) + 5.5 + 6 * this.charge + (lip ? 4.5 : 0); this.charge = 0; this.air = true; this.airT = 0; this.y += .05;
           evt('jump', this, lip); this.takeoff();
         }
@@ -114,6 +114,7 @@ class Racer {
       if (!G0.void && this.y <= G0.y) this.land();
       else if (this.y < G0.h - 15) this.crash('fall');
     }
+    if (course.mb && !this.state) MOBO.racerPost(this, dt);
     // --- progress: checkpoints / finish
     while (this.cpI + 1 < T.cps.length && this.s >= T.cps[this.cpI + 1]) { this.cpI++; this.cpS = T.cps[this.cpI]; evt('cp', this); }
     if (!this.fin && this.s >= T.fin) { this.fin = true; this.finT = GM.time; evt('finish', this); }
