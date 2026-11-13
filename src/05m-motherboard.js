@@ -563,3 +563,22 @@ MOBO.aiLane = function (r, sA, tgt, w) {
   if (A.mbVia) for (const v of MOBO.vias) if (v.s0 > r.s && v.s0 - r.s < 70) t = v.d0;
   if (A.mbCap) for (const c of MOBO.caps) if (c.ch > .95 && c.s > r.s && c.s - r.s < 60) t = c.d;
   return t;
+};
+MOBO.aiAvoid = function (r, tgt, look, w, c) {
+  const s = r.s, v = r.v, dodge = (o, rad) => { const nt = o + (tgt >= o ? 1 : -1) * rad; return Math.abs(nt) > w - 1.5 ? o - Math.sign(nt) * rad : nt; };
+  for (const t of MOBO.towers) if (t.s > s - 2 && t.s < s + look * 1.8 + 10 && (Math.abs(t.d - tgt) < t.r + 2 || Math.abs(t.d - r.d) < t.r + 2)) { tgt = dodge(t.d, t.r + 2.6); if (t.s - s < 18 && Math.abs(t.d - r.d) < t.r + 1) c.acc = 0; }
+  for (const b of MOBO.blobs) if (b.st === 1 && b.s > s - 2 && b.s < s + look * 1.4 && Math.abs(b.d - tgt) < 3) tgt = dodge(b.d, 3.5);
+  MOBO.chips.forEach((ch, ci) => { if (!ch.rows) return; for (let row = 0; row < 2; row++) { const q = ch.rows[row] - s; if (q < 0 || q > v * 1.6 + 12) continue;
+    let best = null, bd = 1e9; ch.gaps.forEach((G, g) => { if (G.d1 - G.d0 < 1.6) return; const mid = (G.d0 + G.d1) / 2, cost = Math.abs(mid - r.d) + (arcState(ci, row, g) ? 6 : 0); if (cost < bd) { bd = cost; best = mid; } });
+    if (best !== null) tgt = best; if (q < v * .6 && ch.gaps.some((G, g) => r.d > G.d0 && r.d < G.d1 && arcState(ci, row, g) === 2)) { c.acc = 0; c.brake = 1; } return; } });
+  const wr = arrAt(track.wid, r.s); ground(r.s, r.d, G0);
+  if (Math.abs(r.d) > wr - 1.5 && G0.reg !== 1) { tgt = Math.sign(r.d) * (wr - 5); if (Math.abs(r.d) > wr + 3 && r.v > 18) { c.acc = 0; c.brake = 1; } } // drifted wide onto the open board: get back on the road
+  for (const h of MOBO.hot) if (r.s > h.s0 - 60 && r.s < h.s1 && r.health < r.st.hp * .7) { const w2 = arrAt(track.wid, r.s); tgt = clamp(tgt, -w2 + 2, w2 - 2); }
+  return tgt;
+};
+
+// ---------------------------------------------------------------- PHASE 4: rider, bike, feel
+const riderMats = {};
+MOBO.dressRacer = function (r) {
+  const A = MOBO.A; if (!A) return;
+  // rider.glb: one skinned character, clips idle / riding / punch / kick / crash
