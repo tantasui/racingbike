@@ -326,3 +326,20 @@ MINE.stepItems = function (dt) {
     let hit = null; for (const r of R) if (r !== p.by && r.mode === 0 && r.lane === p.lane && r.ghostT <= 0 && Math.abs(mineDU(p.u, r.u)) < 1.6) hit = r;
     if (hit || p.t <= 0) {
       mineLP(M.lanes[p.lane], p.u, MQ); mineFx('boom', null, MQ);
+      for (const r of R) { if (r === p.by || r.mode === 2) continue; const d = r.pos.distanceTo(MQ3v.set(MQ.x, MQ.y, MQ.z)); if (r === hit || d < 3) { r.lastBy = p.by; r.lastByT = 2.5; r.derail(Math.random() < .5 ? -1 : 1, 'boom', 9); p.by.pts.hit += 150; } else if (d < 9 && r.mode === 0) r.tipImp += (Math.random() < .5 ? -1 : 1) * .4; }
+      M.proj.splice(i, 1);
+    }
+  }
+  for (let i = M.slicks.length - 1; i >= 0; i--) { const s = M.slicks[i]; s.t -= dt; if (s.t <= 0) { M.slicks.splice(i, 1); continue; } for (const r of R) if (r.mode === 0 && r.lane === s.lane && Math.abs(mineDU(s.u, r.u)) < 1.3 && r.oilT <= 0 && !(r === s.by && s.t > 12.5) && r.ghostT <= 0) { r.oilT = 3.2; r.tipImp += (Math.random() - .5) * .5; r.lastBy = s.by; r.lastByT = 3.5; mineFx('oiled', r); } }
+  for (let i = M.ramps.length - 1; i >= 0; i--) { const s = M.ramps[i]; s.t -= dt; if (s.t <= 0) { M.ramps.splice(i, 1); continue; } for (const r of R) if (r.mode === 0 && r.lane === s.lane && Math.abs(mineDU(s.u, r.u)) < 1.2) { r.launch(9.6, 0, 0); r.vel.multiplyScalar(1.15); r.vel.y = 9.6; mineFx('ramp', r); } }
+  for (const l of M.lanes) for (const g of l.gaps) if (g.bridgeT > 0) g.bridgeT -= dt;
+  for (const J of M.junc) if (J.lockT > 0) J.lockT -= dt;
+  // drafting: sit close behind another cart to build a slingshot
+  for (const r of R) { let d = 0; if (r.mode === 0) for (const o of R) if (o !== r && o.mode === 0 && o.lane === r.lane) { const g = mineDU(r.u, o.u); if (g > 1.9 && g < 12) d = 1; } r.draft = clamp(r.draft + (d ? dt : -dt * 1.5), 0, 2.5); if (r.draft > .8) r.boost = Math.min(5, r.boost + dt * .28); }
+};
+const MQ3v = new THREE.Vector3();
+
+// ---------------------------------------------------------------- PHASE 5: hazards (they get worse each lap)
+MINE.rockState = function (rk) { const per = [8, 6, 4.6][MINE.lapLead], t = (GM.time + rk.ph) % per; return MINE.lapLead < rk.lap ? { s: 0, t: 0 } : t < 1.1 ? { s: 1, t: t / 1.1 } : t < 1.5 ? { s: 2, t: (t - 1.1) / .4 } : t < 3 ? { s: 3, t: (t - 1.5) / 1.5 } : { s: 0, t: 0 }; };
+MINE.ventOn = function (v) { const per = [4.6, 3.6, 2.8][MINE.lapLead]; return MINE.lapLead >= v.lap && ((GM.time + v.ph) % per) < 1.3; };
+MINE.bucketX = function (b) { return Math.sin(Math.sin((GM.time + b.ph) * 1.9) * 1.05) * 5.2; };
