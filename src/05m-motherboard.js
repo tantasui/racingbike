@@ -251,3 +251,23 @@ MOBO.buildTerrain = function () {
         let y = GV.y;
         if (GV.reg === 3) y += Math.floor(GV.e / 3) * .6;                         // stepped component walls
         pos[v * 3] = x; pos[v * 3 + 1] = y; pos[v * 3 + 2] = z; sd[v * 2] = s; sd[v * 2 + 1] = d;
+        let flag = 0;
+        if (GV.reg === 0) { if (T.rampF[i]) flag = 1; for (const kk of T.kicks) if (s > kk.s0 - 1 && s < kk.s0 + kk.len + 1 && Math.abs(d - kk.d) < kk.hw + .5) flag = 1; for (const p of T.pads) if (Math.abs(s - p.s) < 4.5 && Math.abs(d - p.d) < 2.8) flag = 2; }
+        const flat = GV.reg === 2 && !GV.void && (d > 0 ? T.sR[i] : T.sL[i]) === 3;
+        info[v * 4] = flat ? .2 : GV.reg; info[v * 4 + 1] = GV.edge; info[v * 4 + 2] = Math.max(0, GV.h - y); info[v * 4 + 3] = zone + flag * 10;
+        lane[v * 3] = MOBO.lanes[0][i]; lane[v * 3 + 1] = MOBO.lanes[1][i]; lane[v * 3 + 2] = MOBO.lanes[2][i];
+      }
+    }
+    const idx = new Uint32Array((rows - 1) * (cols - 1) * 6); let q = 0;
+    for (let r = 0; r < rows - 1; r++) for (let j = 0; j < cols - 1; j++) { const a = r * cols + j, b = a + 1, c = a + cols, e = c + 1; idx[q++] = a; idx[q++] = c; idx[q++] = b; idx[q++] = b; idx[q++] = c; idx[q++] = e; }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('aSD', new THREE.BufferAttribute(sd, 2)); g.setAttribute('aInfo', new THREE.BufferAttribute(info, 4)); g.setAttribute('aLane', new THREE.BufferAttribute(lane, 3)); g.setIndex(new THREE.BufferAttribute(idx, 1));
+    addMesh(g, pcbMat);
+  }
+};
+
+// ---------------------------------------------------------------- PHASE 2: scenery & look
+// A GLB becomes a list of parts (geometry baked with its node transform, normalised so its base sits on y=0 and centred).
+function moboParts(gltf, opts = {}) {
+  const root = gltf.scene; root.updateMatrixWorld(true);
+  const box = new THREE.Box3(); root.traverse(o => { if (o.isMesh && (!opts.only || opts.only.test(o.name))) box.expandByObject(o); });
