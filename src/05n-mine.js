@@ -64,3 +64,19 @@ function mineTrack() {
   ];
   const offAt = (l, u) => { const K = l.K; if (u <= K[0][0]) return [K[0][1], K[0][2]]; const e = K[K.length - 1]; if (u >= e[0]) return [e[1], e[2]]; let i = 0; while (K[i + 1][0] < u) i++; const a = K[i], b = K[i + 1], t = sstep(a[0], b[0], u); return [lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; };
   M.lanes = LD.map((d, id) => ({ id, a: d.a || 0, b: d.b || L, from: d.from ?? -1, to: d.to ?? -1, keys: d.keys, gaps: (d.gaps || []).map(g => ({ a: g[0], b: g[1], lap: g[2], drop: !!g[3], bridgeT: 0, dyn: false, open: true })) }));
+  for (const l of M.lanes) {
+    l.K = l.keys.slice(); if (l.id) { l.K.unshift([l.a, ...offAt(M.lanes[l.from], l.a)]); l.K.push([l.b, ...offAt(M.lanes[l.to], l.b)]); }
+    const n = l.n = l.b - l.a + 1, F = () => new Float32Array(n);
+    l.px = F(); l.py = F(); l.pz = F(); l.tx = F(); l.ty = F(); l.tz = F(); l.k = F(); l.sc = F(); l.ox = F(); l.oy = F();
+    for (let j = 0; j < n; j++) { const u = l.a + j, i = u % N, o = offAt(l, u); l.ox[j] = o[0]; l.oy[j] = o[1]; l.px[j] = cx[i] + rx[i] * o[0]; l.py[j] = cy[i] + o[1]; l.pz[j] = cz[i] + rz[i] * o[0]; }
+    const hd = F(), W = l.id === 0;
+    for (let j = 0; j < n; j++) {
+      const jp = W ? (j + 1) % (n - 1) : Math.min(n - 1, j + 1), jm = W ? (j + n - 2) % (n - 1) : Math.max(0, j - 1);
+      const dx = l.px[jp] - l.px[jm], dy = l.py[jp] - l.py[jm], dz = l.pz[jp] - l.pz[jm], d = Math.hypot(dx, dy, dz), st = (W || (j > 0 && j < n - 1)) ? 2 : 1;
+      l.tx[j] = dx / d; l.ty[j] = dy / d; l.tz[j] = dz / d; l.sc[j] = d / st; hd[j] = Math.atan2(dx, -dz);
+    }
+    for (let j = 0; j < n; j++) { const jp = W ? (j + 1) % (n - 1) : Math.min(n - 1, j + 1), jm = W ? (j + n - 2) % (n - 1) : Math.max(0, j - 1); l.k[j] = jp === jm ? 0 : angDiff(hd[jp], hd[jm]) / (l.sc[j] * (W || (j > 0 && j < n - 1) ? 2 : 1)); }
+    l.len = l.sc.reduce((a, b) => a + b, 0);
+  }
+  // tunnel gaps sit on the straightest stretch of their window (a gap on a curve cannot be jumped fairly)
+  { const l = M.lanes[0], place = (g, lo, hi) => { let best = lo, bk = 1e9; for (let u = lo; u <= hi; u++) { let km = 0; for (let j = u - 3; j < u + 26; j++) km = Math.max(km, Math.abs(l.k[j])); if (km < bk) { bk = km; best = u; } } const len = g.b - g.a; g.a = best; g.b = best + len; };
