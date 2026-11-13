@@ -76,3 +76,22 @@ function moboSetupTrack() {
   const busy = s => MOBO.caps.some(c => Math.abs(c.s - s) < 20) || MOBO.chips.some(c => Math.abs(c.s - s) < 40) || MOBO.vias.some(v => Math.abs(v.s0 - s) < 15 || Math.abs(v.s1 - s) < 15);
   T.pads = T.pads.filter(p => !busy(p.s)); T.kicks = T.kicks.filter(k => !busy(k.s0 + k.len));
   T.fixedKicks = T.kicks.length;
+  MOBO.blobs = []; MOBO.ramps = []; MOBO.pow = -1; MOBO.black = 0; MOBO.zone = -1;
+}
+// small bumps on the board: seams every 48 m, solder joints, and resistor "logs" lying across the board
+function moboBump(s, d) {
+  let y = 0; const q = s % 48; if (q < 1.2) y += .09 * Math.sin(q / 1.2 * PI);
+  const gi = Math.floor(s / 5), gj = Math.floor(d / 4); if (hash2(gi, gj) < .14) { const cs = (gi + .5) * 5, cd = (gj + .5) * 4, r2 = (s - cs) * (s - cs) + (d - cd) * (d - cd); if (r2 < .36) y += .13 * (1 - r2 / .36); }
+  for (const L of MOBO.logs) { const ds = s - L.s; if (ds > -.5 && ds < .5 && Math.abs(d - L.d) < L.len / 2) y += L.r * Math.sqrt(Math.max(0, 1 - (ds / .5) ** 2)); }
+  return y;
+}
+
+// ---------------------------------------------------------------- asset loading (GLB / textures / audio)
+MOBO.load = function () {
+  if (MOBO.loading) return MOBO.loading;
+  const EX = window.THREE_EX || {};
+  MOBO.loading = (async () => {
+    const A = {}, base = 'assets/';
+    try {
+      if (location.protocol === 'file:' || !EX.GLTFLoader) throw new Error('served from file://');
+      const gl = new EX.GLTFLoader(), tl = new THREE.TextureLoader();
