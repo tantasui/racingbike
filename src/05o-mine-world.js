@@ -181,3 +181,17 @@ void main(){ if(vBZ>uBD.z||vBA>3.1416)discard;
       const i = Math.round(u) % L; if (!M.env[i]) continue; const q = mineLP(l, u, MQ), hi = q.oy > 4, hw = hi ? 2.0 : .8, top = q.y - .32, bot = -16, H = top - bot, ry = mineYaw(q), rx = -q.tz / (Math.hypot(q.tx, q.tz) || 1), rz = q.tx / (Math.hypot(q.tx, q.tz) || 1);
       for (const sd of [-1, 1]) legs.push({ x: q.x + rx * sd * (hw + H * .04), y: (top + bot) / 2, z: q.z + rz * sd * (hw + H * .04), ry, rz: sd * .08, sx: .26, sy: H, sz: .26 });
       beams.push({ x: q.x, y: top - .12, z: q.z, ry, sx: hw * 2 + .7, sy: .22, sz: .26 }); if (H > 14 && !hi) beams.push({ x: q.x, y: top - 7, z: q.z, ry, sx: hw * 2 + 1.5, sy: .2, sz: .22 });
+    }
+    inst(new THREE.BoxGeometry(1, 1, 1), T.timber, legs.concat(beams)); }
+  // --- collapsing trestle decks
+  V.decks = M.trestles.map(t => {
+    const l = M.lanes[t.lane], n = Math.floor((t.b - t.a) / .9), m = new THREE.InstancedMesh(new THREE.BoxGeometry(G * 2 + .9, .16, .3), T.timber, n), base = [];
+    for (let j = 0; j < n; j++) { const u = t.a + j * .9, q = mineLP(l, u, MQ); base.push({ x: q.x, y: q.y - .21, z: q.z, ry: mineYaw(q), th: hash2(j, t.a), gap: u > t.gap.a - .5 && u < t.gap.b + .5, fall: 0 }); }
+    m.frustumCulled = false; world.add(m); worldGeos.push(m.geometry); const d = { t, m, base, dirty: true }; return d;
+  });
+  // --- tunnels: rock tube with baked lantern light, timber frames, lanterns, ore
+  { const PR = [[-3.3, -.45], [-3.7, 1.3], [-3.1, 3.3], [-1.6, 4.5], [0, 4.9], [1.6, 4.5], [3.1, 3.3], [3.7, 1.3], [3.3, -.45], [-3.3, -.45]], posts = [], lamps = [], ore = [], gems = [];
+    for (const [a, b] of M.tunnels) {
+      const P = [], C = [], I = [], rows = []; for (let u = a; u <= b; u += 4) rows.push(u); if (rows[rows.length - 1] !== b) rows.push(b);
+      const ring = (u, sc, dark) => { const i = u % L; PR.forEach((p, j) => { const fl = j === 0 || j >= 8, jr = fl && sc === 1 ? 0 : (hash2(u * .37, j) - .5) * .8 * sc, jy = fl && sc === 1 ? 0 : (hash2(u * .91, j + 9) - .5) * .6 * sc, lat = p[0] * sc + jr;
+        P.push(M.cx[i] + M.rx[i] * lat, M.cy[i] + (sc === 1 ? p[1] : p[1] * sc - 1.5) + jy, M.cz[i] + M.rz[i] * lat);
