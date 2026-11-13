@@ -343,3 +343,19 @@ const MQ3v = new THREE.Vector3();
 MINE.rockState = function (rk) { const per = [8, 6, 4.6][MINE.lapLead], t = (GM.time + rk.ph) % per; return MINE.lapLead < rk.lap ? { s: 0, t: 0 } : t < 1.1 ? { s: 1, t: t / 1.1 } : t < 1.5 ? { s: 2, t: (t - 1.1) / .4 } : t < 3 ? { s: 3, t: (t - 1.5) / 1.5 } : { s: 0, t: 0 }; };
 MINE.ventOn = function (v) { const per = [4.6, 3.6, 2.8][MINE.lapLead]; return MINE.lapLead >= v.lap && ((GM.time + v.ph) % per) < 1.3; };
 MINE.bucketX = function (b) { return Math.sin(Math.sin((GM.time + b.ph) * 1.9) * 1.05) * 5.2; };
+MINE.stepHaz = function (dt) {
+  const M = MINE, R = GM.racers, lap = M.lapLead;
+  for (const r of R) {
+    if (r.mode !== 0 || r.invT > 0 || r.fin) continue; const u0 = r.u - r.v * dt - .01;
+    if (r.hazCD <= 0) {
+      for (const k of M.rockDef) if (k.lane === r.lane && Math.abs(r.u - k.u) < 1.5) { const s = M.rockState(k); if ((s.s === 2 && s.t > .7) || s.s === 3) { r.v *= .35; r.tipImp += (Math.random() - .5) * .7; r.hazCD = 1.2; r.hurt(26); mineFx('haz', r, 'ROCK FALL!'); } }
+      for (const b of M.bucketDef) if (b.lane === r.lane && Math.abs(r.u - b.u) < 1.3 && Math.abs(M.bucketX(b)) < 1.25 && r.duck < .6) { r.v *= .5; r.tipImp += Math.sign(M.bucketX(b) || 1) * -.45; r.hazCD = 1; r.stunT = .4; r.hurt(20); mineFx('haz', r, 'ORE BUCKET!'); }
+      for (const b of M.beamDef) if (b.lane === r.lane && lap >= b.lap && u0 < b.u && r.u >= b.u && r.duck < .6) { r.v *= .6; r.stunT = .6; r.hazCD = .8; r.hurt(16); mineFx('haz', r, 'LOW BEAM!'); }
+    }
+    for (const v of M.ventDef) if (v.lane === r.lane && Math.abs(r.u - v.u) < 2.6 && M.ventOn(v)) { r.tipImp -= v.side * 1.5 * dt; r.v = Math.max(3, r.v - 3 * dt); r.hurt(14 * dt); if (r.isP) M.steamK = 1; }
+    for (const t of M.trestles) if (t.lane === r.lane && r.u > t.a && r.u < t.b) {
+      const mid = (t.a + t.b) / 2; if (u0 < mid && r.u >= mid) { t.dmg = Math.min(1, t.dmg + (lap >= 2 ? .34 : lap >= 1 ? .27 : .21)); t.lastT = GM.time; mineFx('creak', r, t); if (t.dmg >= 1 && !t.gap.open) { t.gap.open = true; mineFx('collapse', r, t); } }
+      r.tipImp += (Math.random() - .5) * t.dmg * 2.2 * dt * 6 * .12; r.v = Math.max(4, r.v - t.dmg * 1.6 * dt); r.onTrestle = t.dmg;
+    }
+  }
+  for (const t of M.trestles) if (t.dmg > 0 && GM.time - t.lastT > 16) { t.dmg = 0; t.gap.open = false; mineFx('rebuilt', null, t); }
