@@ -416,7 +416,7 @@ function buildScenery() {
 function buildWorld(ci) {
   clearWorld(); if (window.MINE) MINE.reset(); if (COURSES[ci].mine) course = COURSES[ci]; else loadTrack(ci);
   const c = course, B = c.bend;
-  BU.uBP.value.set(1 / B.R, B.twist, B.lift, B.R);
+  if (B.flat) BU.uBP.value.set(0, 0, 0, 0); else BU.uBP.value.set(1 / B.R, B.twist, B.lift, B.R);
   uFogC.value.setRGB(c.fog[0], c.fog[1], c.fog[2]); uFogD.value = c.fogD; scene.fog.color.copy(uFogC.value); scene.fog.density = c.fogD;
   const U = skyMat.uniforms; U.uType.value = c.sky.type; U.cA.value.setRGB(...c.sky.cA); U.cB.value.setRGB(...c.sky.cB); U.cC.value.setRGB(...c.sky.cC); U.cD.value.setRGB(...c.sky.cD);
   terrMat.uniforms.uPat.value = c.far.veins ? 1 : c.far.river ? 2 : c.far.crests ? 3 : 0;
@@ -424,7 +424,8 @@ function buildWorld(ci) {
   hemi.color.setRGB(c.lightT[0] * .8 + .25, c.lightT[1] * .8 + .25, c.lightT[2] * .8 + .25); hemi.groundColor.setRGB(...c.shadowT);
   sunL.color.setRGB(...c.lightT); sunL.position.set(...c.sun);
   mComp.uniforms.uTint.value.setRGB(...c.hl);
-  buildTerrain(); buildFar(); buildScenery();
+  if (c.mine) { MOBO.reset(); MINE.build(); return; }
+  if (c.mb) { terrMat.uniforms.uPat.value = 4; MOBO.buildTerrain(); buildFar(); buildScenery(); MOBO.buildScenery(); } else { MOBO.reset(); buildTerrain(); buildFar(); buildScenery(); }
 }
 
 // ============================================================ FX: particles, ground decals (streaks / hoofprints), light trails
