@@ -279,3 +279,17 @@ function mineFrameVis(dt) {
   for (const g of V.gapMesh) g.me.visible = !mineGapOn(g.g);
   // switch signals: red blinking = that branch is closed to you; green = open (brighter = where the switch rests)
   for (const s of V.sig) { const J = s.J, lock = J.lockT > 0, bl = Math.sin(GM.t * 14) > 0; for (let k = 0; k < 2; k++) { const c = s.lamps[k].color; if (lock) { if (k === J.forced) c.setRGB(.4, 3, .7); else c.setRGB(bl ? 3.4 : .5, .15, .08); } else c.setRGB(.25, k === J.rest ? 2.2 : .7, k === J.rest ? .5 : .16); } }
+  V.picks.forEach((me, i) => { const p = M.picks[i]; me.visible = !!p && p.t <= 0; me.rotation.y = t * 2 + i; me.rotation.x = t * 1.3; });
+  for (const o of V.beams) o.me.visible = M.lapLead >= o.b.lap;
+  for (const o of V.buckets) o.sw.rotation.z = -Math.sin((t + o.b.ph) * 1.9) * 1.05;
+  for (const o of V.rocks) { const s = M.rockState(o.k), y = s.s === 2 ? 5 * (1 - s.t * s.t) : s.s === 3 ? 0 : 9; o.me.visible = s.s >= 2; o.me.position.set(o.p.x, o.p.y + .7 + y, o.p.z); o.me.rotation.set(t * 3 * (s.s === 2 ? 1 : 0), o.k.ph, 0); o.me.scale.setScalar(s.s === 3 ? 1 - Math.max(0, s.t - .75) * 4 * .9 : 1);
+    if (s.s === 1 && Math.random() < dt * 40) spawnP(o.p.x + (Math.random() - .5) * 2, o.p.y + 4.6, o.p.z + (Math.random() - .5) * 2, 0, -3 - Math.random() * 3, 0, .6, .12, .9, .6, .35, 6);
+    if (s.s === 3 && s.t < .08) burst(o.p.x, o.p.y + .5, o.p.z, 3, 5, .5, .25, [1.2, .7, .35], 9); }
+  for (const o of V.vents) if (M.ventOn(o.v)) { const q = o.p.q, h = Math.hypot(q.tx, q.tz) || 1, dx = q.tz / h * o.v.side, dz = -q.tx / h * o.v.side; for (let k = 0; k < 3; k++) spawnP(o.p.x + dx * .5, o.p.y + (Math.random() - .5) * .3, o.p.z + dz * .5, dx * (7 + Math.random() * 5) + (Math.random() - .5) * 2, 1 + Math.random() * 2, dz * (7 + Math.random() * 5) + (Math.random() - .5) * 2, .45, .55, .55, .55, .6, -2); }
+  // trestle decks falling apart
+  for (const d of V.decks) { const tt = d.t; let any = d.dirty; d.dirty = false;
+    for (const b of d.base) { const should = b.gap ? tt.gap.open : tt.dmg > .3 + b.th * .9; if (should && !b.fall) { b.fall = .001; any = true; if (Math.random() < .3) spawnP(b.x, b.y, b.z, 0, 1, 0, .5, .2, .8, .5, .25, 9); } else if (!should && b.fall) { b.fall = 0; any = true; } else if (b.fall && b.fall < 3) { b.fall += dt; any = true; } }
+    if (any) { d.base.forEach((b, j) => { _o3.position.set(b.x, b.y - 9 * b.fall * b.fall, b.z); _o3.rotation.set(b.fall * 2.1 * (b.th - .5), b.ry, b.fall * 3 * (b.th - .3), 'YXZ'); _o3.scale.setScalar(b.fall >= 3 ? 0 : 1); _o3.updateMatrix(); d.m.setMatrixAt(j, _o3.matrix); }); d.m.instanceMatrix.needsUpdate = true; } }
+  V.proj.forEach((me, i) => { const p = M.proj[i]; me.visible = !!p; if (p) { const q = mineLP(M.lanes[p.lane], p.u, MQ); me.position.set(q.x, q.y + 1 + Math.sin(p.t * 9) * .15, q.z); me.rotation.y = mineYaw(q); spawnP(q.x, q.y + 1, q.z, (Math.random() - .5) * 3, 2, (Math.random() - .5) * 3, .3, .16, 2.6, 1.4, .3, 8); } });
+  V.slick.forEach((me, i) => { const p = M.slicks[i]; me.visible = !!p; if (p) { const q = mineLP(M.lanes[p.lane], p.u, MQ); me.position.set(q.x, q.y + .03, q.z); } });
+  V.ramp.forEach((me, i) => { const p = M.ramps[i]; me.visible = !!p; if (p) { const q = mineLP(M.lanes[p.lane], p.u, MQ); me.position.set(q.x, q.y + .45, q.z); me.rotation.set(.3 + Math.asin(clamp(q.ty, -1, 1)), mineYaw(q), 0, 'YXZ'); } });
