@@ -95,3 +95,23 @@ MOBO.load = function () {
     try {
       if (location.protocol === 'file:' || !EX.GLTFLoader) throw new Error('served from file://');
       const gl = new EX.GLTFLoader(), tl = new THREE.TextureLoader();
+      const glb = n => gl.loadAsync(base + 'models/' + n + '.glb');
+      const tex = (n, srgb) => tl.loadAsync(base + 'textures/' + n).then(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; if (srgb) t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t; });
+      [A.chip, A.chipS, A.card, A.cpu, A.capD, A.trans, A.rider, A.bmx, A.m51c, A.m51n, A.m51r, A.m08c, A.m08n, A.m08r, A.spark] = await Promise.all([
+        glb('components/microchip'), glb('components/microchip_small'), glb('components/graphics_card'), glb('components/cpu'), glb('components/capacitor'), glb('components/transistor'),
+        glb('rider/rider'), glb('rides/bmx'),
+        tex('metal/metal051a_color.jpg', 1), tex('metal/metal051a_normal.jpg'), tex('metal/metal051a_rough.jpg'), tex('metal/metal008_color.jpg', 1), tex('metal/metal008_normal.jpg'), tex('metal/metal008_rough.jpg'), tex('particles/spark_05.png', 1)]);
+      // Metal008 is worn and rust-brown: desaturate and cool-tint it so it reads as manufactured, not old
+      A.m08clean = (() => { const im = A.m08c.image, c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+        for (let i = 0; i < p.length; i += 4) { const l = (p[i] * .3 + p[i + 1] * .59 + p[i + 2] * .11) / 255, v = 40 + l * 150; p[i] = v * .86; p[i + 1] = v * .93; p[i + 2] = v; } x.putImageData(d, 0, 0);
+        const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; return t; })();
+      // rider: strip horizontal root motion so clips play in place on the bike
+      for (const c of A.rider.animations) for (const tr of c.tracks) if (/Hips\.position$/.test(tr.name)) { const v = tr.values; for (let i = 3; i < v.length; i += 3) { v[i] = v[0]; v[i + 2] = v[2]; } }
+      { const tmp = EX.SkeletonUtils.clone(A.rider.scene), mx = new THREE.AnimationMixer(tmp), clip = A.rider.animations.find(c => c.name === 'riding');
+        mx.clipAction(clip).play(); mx.update(0); tmp.updateMatrixWorld(true); let hips = null; tmp.traverse(o => { if (o.isBone && /Hips$/.test(o.name)) hips = o; });
+        const hp = new THREE.Vector3(); hips.getWorldPosition(hp); A.hipY = hp.y; const bb = new THREE.Box3().setFromObject(tmp); A.footY = bb.min.y; }
+      // environment for metal: a soft room
+      const pm = new THREE.PMREMGenerator(renderer); A.env = pm.fromScene(new EX.RoomEnvironment(), .04).texture; pm.dispose();
+      // audio files (decoded once the audio context exists)
+      const au = ['music/dark_synthwave', 'sfx/electric_zap', 'sfx/electric_whoosh', 'sfx/whoosh_bright_panning', 'sfx/wind_loop'];
+      await Promise.all(au.map(n => fetch(base + 'audio/' + n + '.ogg').then(r => r.ok ? r.arrayBuffer() : null).then(b => { if (b) MOBO.snd.raw[n.split('/')[1]] = b; }).catch(() => { })));
