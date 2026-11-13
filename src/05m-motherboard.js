@@ -543,3 +543,23 @@ MOBO.evt = function (type, r, a) {
     case 'viaIn': burst(x, y, z, 24, 6, .6, .3, [.4, 2, 2.2], -4); if (P) { popup('VIA SHORTCUT!', 'info'); moboSfx('whoosh_bright_panning', .6, 1.4); } return true;
     case 'viaOut': burst(x, y, z, 28, 9, .6, .35, [.4, 2, 2.2], 6); if (P) { moboSfx('electric_whoosh', .6, 1); cam.shake = Math.max(cam.shake, .6); } return true;
     case 'hit': moboSfx('electric_zap', P || (a && a.isP && !GM.demo) ? .55 : 0, 1 + Math.random() * .3, .45); return false;
+    case 'crash': if (a === 'shock' || a === 'lava') { burst(x, y + 1, z, 50, 12, .7, .35, [1.4, 2.2, 2.6], 7); if (P) moboSfx('electric_zap', .9, .85); } return false;
+    case 'boost': if (P) moboSfx('whoosh_bright_panning', .55, 1.1); return false;
+    case 'ko': { tpos(a.s, a.d, TP1); MOBO.blackP.set(TP1.x, a.y, TP1.z); MOBO.black = 1.6; burst(TP1.x, a.y + 1, TP1.z, 80, 16, 1, .45, [2.4, 2, 1], 8); burst(TP1.x, a.y + 1, TP1.z, 40, 10, 1.2, .4, [.6, 2.2, 2.6], 4); moboSfx('electric_zap', (P || a.isP) && !GM.demo ? 1 : 0, .7); if ((P || a.isP) && !GM.demo) MOBO.slow(.9); return false; }
+    case 'finish': if (MOBO.pow < 0) MOBO.powerUp(); return false;
+  }
+  return false;
+};
+MOBO.powerUp = function () {
+  MOBO.pow = 0; if (GM.demo) return;
+  const el = $('mbPower'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  AU.tone(110, 1.6, { to: 880, type: 'sawtooth', vol: .16 }); AU.tone(220, 1.8, { to: 1760, type: 'square', vol: .06, delay: .3 }); cam.flash = .5;
+};
+// ---- AI: ride the traces, chase pulses, use vias / capacitors, avoid the hazards
+MOBO.aiLane = function (r, sA, tgt, w) {
+  const A = r.ai; if (A.mbK === undefined) { A.mbK = (Math.random() * 3) | 0; A.mbVia = Math.random() < [.2, .45, .7][GM.diff]; A.mbCap = Math.random() < DIFFS[GM.diff].trickP; }
+  if ((GM.t * 10 | 0) % 37 === r.i) A.mbK = (A.mbK + (Math.random() < .5 ? 1 : 2)) % 3;
+  let t = MOBO.laneAt(A.mbK, sA);
+  if (A.mbVia) for (const v of MOBO.vias) if (v.s0 > r.s && v.s0 - r.s < 70) t = v.d0;
+  if (A.mbCap) for (const c of MOBO.caps) if (c.ch > .95 && c.s > r.s && c.s - r.s < 60) t = c.d;
+  return t;
