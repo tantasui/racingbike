@@ -348,3 +348,23 @@ MOBO.buildScenery = function () {
     inst(cyl, patch(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .35, metalness: .1, envMap: A && A.env })), sleeve);
     inst(cyl, A ? moboMat({ uuid: 'cap-top', name: 'cap-top' }, 'silver') : M(0xbbbbbb), tops);
     inst(stripeG, patch(new THREE.MeshLambertMaterial({ color: 0xd8dde6, side: THREE.DoubleSide })), stripes); }
+  // --- resistors as fallen logs (the ones on the board are bumps you ride over)
+  { const body = [], band = [], lead = [], bc = [[.05, .05, .05], [.5, .25, .08], [1, .1, .05], [1, .6, .05], [1, 1, .1], [.1, .6, .2], [.85, .7, .3]];
+    const add = (x, y, z, ry, len, r) => { body.push({ x, y: y + r, z, ry, rz: PI / 2, sx: r, sy: len, sz: r, c: [.82, .7, .5] }); for (let b = 0; b < 4; b++) band.push({ x: x + Math.cos(-ry) * 0, y: y + r, z, ry, rz: PI / 2, sx: r * 1.04, sy: len * .07, sz: r * 1.04, c: bc[(rnd() * bc.length) | 0], off: (b - 1.5) * len * .2 }); lead.push({ x, y: y + r, z, ry, rz: PI / 2, sx: r * .18, sy: len * 2.2, sz: r * .18 }); };
+    for (const L of MOBO.logs) { const p = onTrack(L.s, L.d); add(p.x, p.y, p.z, -p.th + PI / 2, L.len, L.r); }
+    for (let s = 40; s < T.len - 40; s += 25 + rnd() * 40) { const p = sideSpot(s, 2, 14); if (p) add(p.x, p.y, p.z, R(0, TAU), R(3, 8), R(.4, .9)); }
+    band.forEach(b => { const dx = Math.cos(b.ry) * b.off, dz = -Math.sin(b.ry) * b.off; b.x += dx; b.z += dz; });
+    const cyl = new THREE.CylinderGeometry(1, 1, 1, 12);
+    inst(cyl, patch(new THREE.MeshLambertMaterial({ color: 0xffffff })), body); inst(cyl, patch(new THREE.MeshLambertMaterial({ color: 0xffffff })), band); inst(cyl, M(0xb0b8c0), lead); }
+  if (A) {
+    // --- chips as city blocks (Processor City is a downtown of them) and chips scattered on the far board / ceiling
+    const big = moboParts(A.chip), small = moboParts(A.chipS), city = [], citySm = [], lights = [];
+    for (let s = zs(3) - 30; s < zs(4) + 20; s += 26 + rnd() * 16) for (const sd of [-1, 1]) {
+      const sc = R(4, 8), r = rnd() < .65, hw = .8 * sc * (r ? 1 : 1.6), hl = (r ? 2.44 * sc : 1.1 * sc); const p = sideSpot(s, hw + 3, hw + 30, sd, hl); if (!p) continue;
+      (r ? city : citySm).push({ x: p.x, y: p.y, z: p.z, ry: -p.th + PI / 2, s: sc * (r ? 1 : 1.6) }); for (const o of [-.66, 0, .66]) solid(s + o * hl, p.d, hw);
+      if (rnd() < .5) lights.push({ x: p.x + R(-3, 3), y: p.y + sc * 1.25, z: p.z + R(-3, 3), sx: .3, sy: .2, sz: .3, c: rnd() < .6 ? [.3, 1.1, .5] : [1.1, .3, .15] });
+    }
+    moboInst(big, city, chipSwap); moboInst(small, citySm, chipSwap);
+    // far board / ceiling: cheap box chips with glowing pin rows (the full models cost ~2.3k triangles each)
+    const fb = [], fp = [];
+    for (let n = 0; n < 1400; n++) { const z = R(T.cz[T.N - 1] - 1500, T.cz[0] + 100), row = farRow(z), dx = (rnd() < .5 ? -1 : 1) * R(70, 1300), x = row.x + dx, y = farHb(row.base, dx, x, z), k = R(8, 30) * (1 + Math.abs(dx) / 900), L = k * (rnd() < .5 ? 4.8 : 1.4), ry = R(0, TAU);
