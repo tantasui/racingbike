@@ -322,3 +322,17 @@ function mineFx(type, r, a) {
       if (P) { cam.shake = Math.max(cam.shake, .45); if (a.passed) popup('RAIL JUMP PASS!', 'combo'); if (a.perfect) { popup('PERFECT LANDING!  +BOOST', 'good'); AU.trick(2); } } break;
     case 'switched': if (P) { popup('SWITCHED!', 'bad'); AU.tone(220, .25, { to: 140, type: 'square', vol: .14 }); } break;
     case 'throw': if (near) { AU.tone(140, .12, { to: 90, type: 'square', vol: .2 }); AU.noise(.1, { f: 900, vol: .16 }); } if (P) popup('SWITCH THROWN — ' + a.lab[1 - a.forced], 'good'); break;
+    case 'ghostsw': if (P) popup('GHOSTED THROUGH THE SWITCH!', 'combo'); break;
+    case 'ghostpass': if (P) { popup('GHOSTED PAST!', 'combo'); AU.pad(); } break;
+    case 'lap': if (P) { popup(r.lap >= M.LAPS - 1 ? 'FINAL LAP!' : 'LAP ' + (r.lap + 1) + ' / ' + M.LAPS, 'info'); AU.cp(); } break;
+    case 'finish': if (P) { GM.finWait = 3.2; AU.win(); popup(GM.order.indexOf(r) <= 0 ? 'WINNER!' : 'FINISHED!', 'good'); } break;
+    case 'ram': burst((x + a.f.pos.x) / 2, y + .5, (z + a.f.pos.z) / 2, 10 + a.rel * 3 | 0, 7, .4, .22, [2.6, 1.5, .4], 12); if (near || a.f.isP) { AU.hit(); AU.noise(.25, { f: 2800, to: 1200, vol: .12, q: 5 }); } if (P || a.f.isP) { cam.shake = Math.max(cam.shake, .5); PAD.rumble(.7, .4, 200); } break;
+    case 'merge': burst((x + a.pos.x) / 2, y + .6, (z + a.pos.z) / 2, 50, 12, .8, .35, [2.8, 1.6, .5], 12); if (near || a.isP) { M.slowT = .55; AU.noise(.9, { f: 3600, to: 1400, vol: .3, q: 6 }); AU.crash(); cam.shake = 1.1; } if (P) popup('HELD THE RAIL!', 'good'); break;
+    case 'shove': r.atkT = GM.t + .4; r.atkSide = a.side; if (near) { AU.swing(); if (a.hit) AU.hit(); } if (P && a.hit) popup('SHOVE!', 'info'); break;
+    case 'ko': if (P) { popup('KNOCKOUT!', 'combo'); AU.ko(); } break;
+    case 'pick': burst(x, y + 1, z, 14, 5, .5, .25, [2.4, 1.6, .3], 0); if (P) { const it = MITEMS.find(q => q[0] === r.item); popup(it[2], 'info'); AU.cp(); } break;
+    case 'use': if (near) { if (a === 'whistle') { AU.tone(1180, .9, { type: 'square', vol: .2, att: .04 }); AU.tone(1480, .9, { type: 'square', vol: .14, att: .04 }); AU.noise(.9, { f: 3000, vol: .12, q: 1 }); } else if (a === 'surge') { AU.boost(); AU.noise(.6, { f: 200, to: 80, vol: .4, type: 'lowpass' }); } else if (a === 'ghost') AU.pad(); else AU.swing(); }
+      if (a === 'whistle') burst(x, y + 1.5, z, 40, 14, .6, .5, [.8, .8, .9], 0); if (P && a === 'surge') { popup('COAL SURGE!', 'good'); cam.shake = .7; } break;
+    case 'nouse': if (P) popup('NO TARGET', 'bad'); break;
+    case 'locked': if (P) { popup('BRAKES LOCKED!', 'bad'); AU.tone(300, .3, { to: 200, type: 'square', vol: .16 }); } else if (a.isP && !GM.demo) popup('BRAKE LOCK HIT', 'good'); break;
+    case 'sling': if (P) { popup('SLINGSHOT!', 'combo'); AU.boost(); } break;
