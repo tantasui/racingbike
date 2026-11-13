@@ -269,16 +269,35 @@ function initUI() {
   window.onbeforeunload = e => { if (GM.state === 'race') { e.preventDefault(); return e.returnValue = 'Race in progress'; } }; // guards against Ctrl+W while boosting
 }
 
+// one menu handler shared by keyboard and gamepad
+function menuAct(a) {
+  const st = GM.state;
+  if (st === 'menu') { if (a === 'ok') toRide(); }
+  else if (st === 'ride') { if (a === 'left') pickRide((GM.ride + 2) % 3); else if (a === 'right') pickRide((GM.ride + 1) % 3); else if (a === 'ok') toCourse(); else if (a === 'back') toMenu(); }
+  else if (st === 'course') { if (a === 'left') pickCourse((GM.course + COURSES.length - 1) % COURSES.length); else if (a === 'right') pickCourse((GM.course + 1) % COURSES.length); else if (a === 'up') pickDiff(Math.min(2, GM.diff + 1)); else if (a === 'down') pickDiff(Math.max(0, GM.diff - 1)); else if (a === 'ok') startRace(); else if (a === 'back') toRide(); }
+  else if (st === 'race') { if (a === 'back' || a === 'pause') pause(); }
+  else if (st === 'paused') { if (a === 'back' || a === 'ok' || a === 'pause') resume(); else if (a === 'quit') toMenu(); }
+  else if (st === 'results') { if (a === 'ok') startRace(); else if (a === 'back') toMenu(); }
+}
+function padMenus() {
+  if (!PAD.on) return; const st = GM.state;
+  if (PAD.hit[9]) { menuAct(st === 'race' || st === 'paused' ? 'pause' : 'ok'); return; }
+  if (st === 'race') return;
+  for (const k in PAD.nav) menuAct(k);
+  if (PAD.hit[0]) menuAct('ok'); else if (PAD.hit[1]) menuAct(st === 'paused' ? 'quit' : 'back');
+}
 // ---------------------------------------------------------------- main loop
 let lastT = 0, fAvg = 17, fPrev = 0, fAdj = 0;
 function frame(t) {
   requestAnimationFrame(frame);
   let dt = Math.min(.05, (t - lastT) / 1000 || .016); lastT = t;
+  PAD.poll(); padMenus();
   if (GM.state === 'race') { fAvg += ((t - fPrev) - fAvg) * .03; if (fAvg > 24 && t - fAdj > 2500 && QS > .5) { QS *= .85; fAdj = t; fAvg = 17; resize(); } } fPrev = t;
   if (GM.built >= 0 && GM.racers.length) {
     if (GM.state !== 'paused') {
-      const n = dt > .022 ? 2 : 1; for (let i = 0; i < n; i++) stepRace(dt / n);
-      uTime.value += dt; updateFX(dt); updCamera(dt); if (!GM.demo) updHUD();
+      const ts = course.mb ? MOBO.timeScale(dt) : course.mine ? MINE.timeScale(dt) : 1, sdt = dt * ts;
+      const n = sdt > .022 ? 2 : 1; for (let i = 0; i < n; i++) stepRace(sdt / n);
+      uTime.value += sdt; updateFX(sdt); updCamera(dt); if (!GM.demo) updHUD();
     }
     renderFrame();
   }
