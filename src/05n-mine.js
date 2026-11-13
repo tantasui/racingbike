@@ -113,3 +113,19 @@ function mineGapAt(li, u) { for (const g of MINE.lanes[li].gaps) if (u >= g.a &&
 function mineNextGap(li, u, range) { let best = null; for (const g of MINE.lanes[li].gaps) if (mineGapOn(g) && g.a > u - .5 && g.a - u < range && (!best || g.a < best.a)) best = g; return best; }
 const mineDU = (a, b) => { const L = MINE.L; return ((b - a) % L + L * 1.5) % L - L / 2; }; // signed distance a -> b along the loop
 const MQ = {}, MQ2 = {}, MQ3 = {};
+
+// ---------------------------------------------------------------- the cart: on the rail it is (lane, u, speed, tip); off the rail it is a free body
+class MineCart {
+  constructor(i, ride, isP) {
+    this.i = i; this.isP = isP; this.ride = ride; this.st = { hp: 100 };
+    this.stt = [{ acc: 1.1, top: 1, mass: .85, stab: .95 }, { acc: 1, top: 1, mass: 1, stab: 1 }, { acc: .92, top: 1.02, mass: 1.25, stab: 1.08 }][ride];
+    this.c = { acc: 0, brake: 0, lean: 0, jumpHit: false, duck: false, use: false, boostHit: false, pL: false, kR: false, choice: null };
+    this.pts = { trick: 0, hit: 0, ko: 0 }; this.best = 0; this.bestN = 0; this.kos = 0; this.charge = 0;
+    this.pos = new THREE.Vector3(); this.vel = new THREE.Vector3();
+    this.ai = { plan: {}, stuck: 0, err: 0, drop: null, useT: 2 + Math.random() * 4, rjCD: 3 + Math.random() * 3, side: 1 };
+    this.lane = 0; this.u = 0; this.v = 0; this.lap = 0; this.prog = 0; this.mode = 0; this.tip = 0; this.tipImp = 0; this.ox = 0; this.ci = 0;
+    this.health = 100; this.boost = 1; this.boostT = 0; this.item = null; this.fin = false; this.finT = 0; this.rb = 1;
+    this.ghostT = 0; this.oilT = 0; this.lockT = 0; this.blindT = 0; this.surgeT = 0; this.invT = 0; this.stunT = 0; this.hazCD = 0; this.draft = 0; this.grap = null; this.duck = 0;
+    this.airT = 0; this.rj = false; this.tumble = false; this.wt = 0; this.wk = ''; this.heat = 0; this.aLat = 0; this.lastBy = null; this.lastByT = 0; this.wheel = 0; this.rock = 0; this.spin = 0; this.sparkT = 0;
+    this.fw = new THREE.Vector3(0, 0, -1); this.kNow = 0;
+    if (window.mineCartMake) mineCartMake(this);
