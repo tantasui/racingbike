@@ -261,3 +261,19 @@ MINE.collide = function (dt) {
     const a = R[i], b = R[j], key = i * 6 + j; if (M.pairCD[key] > 0) M.pairCD[key] -= dt;
     const d = mineDU(a.u, b.u), sgn = Math.sign(b.prog - a.prog), prev = M.pairS[key]; M.pairS[key] = sgn;
     if (a.mode !== 0 || b.mode !== 0) continue;
+    const ghost = a.ghostT > 0 || b.ghostT > 0 || a.invT > 0 || b.invT > 0;
+    if (a.lane === b.lane) {
+      if (ghost) { if (prev && sgn && prev !== sgn && Math.abs(d) < 4) { const g = sgn > 0 ? b : a; if (g.ghostT > 0) mineFx('ghostpass', g); } continue; }
+      if (Math.abs(d) >= M.LEN) continue;
+      const f = d >= 0 ? b : a, r = d >= 0 ? a : b, ov = M.LEN - Math.abs(d), rel = r.v - f.v, mf = f.stt.mass, mr = r.stt.mass * (r.surgeT > 0 ? 2.5 : 1);
+      r.u -= ov * .5; f.u += ov * .5; if (r.u < 0) r.u += M.L; if (f.lane === 0 && f.u >= M.L) f.u -= .01;
+      if (rel > 0) {
+        const e = .25, vf = (mf * f.v + mr * r.v + mr * e * rel) / (mf + mr), vr = (mf * f.v + mr * r.v - mf * e * rel) / (mf + mr); f.v = vf; r.v = Math.max(0, vr);
+        if (rel > 1.2 && M.pairCD[key] <= 0) {
+          M.pairCD[key] = .35; f.lastBy = r; f.lastByT = 2.5;
+          if (Math.abs(f.kNow) > .006) f.tipImp -= Math.sign(f.kNow) * Math.min(.7, rel * .09 * mr / mf);   // a shove on a curve tips the cart in front outward
+          if (r.surgeT > 0 && rel > 2.5) f.derail(Math.random() < .5 ? -1 : 1, 'ram'); else f.hurt(rel * 1.5, r);
+          r.pts.hit += 25; mineFx('ram', r, { f, rel });
+        }
+      }
+    } else if (!ghost && Math.abs(d) < 2 && a.pos.distanceToSquared(b.pos) < 1.7) {
