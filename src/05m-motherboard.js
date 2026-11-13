@@ -37,3 +37,22 @@ function moboSetupTrack() {
   const T = track, N = T.N, rnd = RNG(4242); T.mb = true;
   MOBO.zb = T.zones.filter(z => z.kind.startsWith('mb')).map(z => z.s0); MOBO.zb.push(T.len);
   // --- main traces: 3 lanes per zone, right-angled jogs at 45° with rounded corners, kept in order and apart
+  const L = [new Float32Array(N), new Float32Array(N), new Float32Array(N)], LW = [2.3, 1.9, 2.1];
+  for (let z = 0; z < 6; z++) {
+    const a = Math.round(MOBO.zb[z] / DS), b = Math.min(N - 1, Math.round(MOBO.zb[z + 1] / DS)), zr = RNG(900 + z * 31);
+    let cur = [-8, 0, 8], i = a;
+    while (i <= b) {
+      const hold = Math.round((60 + zr() * 110) / DS);
+      for (let q = 0; q < hold && i <= b; q++, i++) for (let k = 0; k < 3; k++) L[k][i] = cur[k];
+      const nx = cur.slice(), k = (zr() * 3) | 0, step = (zr() < .5 ? -1 : 1) * (3 + ((zr() * 3) | 0) * 2);
+      nx[k] = clamp(nx[k] + step, k === 0 ? -11.5 : nx[k - 1] + 6.5, k === 2 ? 11.5 : nx[k + 1] - 6.5);
+      const jl = Math.max(1, Math.round(Math.abs(nx[k] - cur[k]) / DS)); // 45 degrees: lateral change == distance travelled
+      for (let q = 1; q <= jl && i <= b; q++, i++) for (let kk = 0; kk < 3; kk++) L[kk][i] = lerp(cur[kk], nx[kk], q / jl);
+      cur = nx;
+    }
+  }
+  for (let pass = 0; pass < 2; pass++) for (const l of L) { const c = l.slice(); for (let i = 2; i < N - 2; i++) l[i] = (c[i - 2] + c[i - 1] + c[i] + c[i + 1] + c[i + 2]) / 5; } // round the corners
+  for (let i = 0; i < N; i++) { const sc = Math.min(1, (T.wid[i] - 3) / 12); for (const l of L) l[i] *= sc; }
+  MOBO.lanes = L; MOBO.laneW = LW;
+  const laneAt = (k, s) => arrAt(L[k], s);
+  MOBO.laneAt = laneAt;
