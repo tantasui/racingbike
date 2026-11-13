@@ -310,3 +310,19 @@ function mineGrapStep(r, dt) {
   if (t.mode !== 0 || r.mode !== 0 || g.T > 3.2 || t.prog < r.prog) { r.grap = null; return; }
   if (g.T > .3 && t.c.brake > .5 && t.lockT <= 0) { r.grap = null; t.lastBy = null; r.derail(1, 'grapple'); t.derail(-1, 'grapple'); return; } // they braked while hooked: both wreck
   r.v = Math.max(r.v, Math.min(40, t.v + 10));
+  if (t.prog - r.prog < 3.4) { r.grap = null; r.ghostT = Math.max(r.ghostT, 1.1); r.v = t.v + 9; r.boostT = Math.max(r.boostT, 1); mineFx('sling', r, t); }
+}
+function mineRoll(r) {
+  const pos = GM.order.indexOf(r), w = pos <= 0 ? [1, .3, 0, .3, 3, 2, 0, 2.5] : pos >= 4 ? [2, 3, 2.5, 3, .3, 1.5, 2, 1] : [2.5, 1.5, 2, 2, 1.2, 1.5, 2, 1.5];
+  let s = w.reduce((a, b) => a + b, 0) * Math.random(); for (let i = 0; i < 8; i++) { s -= w[i]; if (s <= 0) return MITEMS[i][0]; } return 'surge';
+}
+MINE.stepItems = function (dt) {
+  const M = MINE, R = GM.racers;
+  for (const p of M.picks) { if (p.t > 0) { p.t -= dt; continue; } for (const r of R) if (r.mode === 0 && r.lane === p.lane && !r.item && Math.abs(r.u - p.u) < 1.4) { r.item = mineRoll(r); p.t = 7; mineFx('pick', r, p); break; } }
+  for (let i = M.proj.length - 1; i >= 0; i--) {
+    const p = M.proj[i]; p.t -= dt; const l = M.lanes[p.lane], P = mineLP(l, p.u, MQ); let u = p.u + p.v * dt / P.sc;
+    for (const J of M.junc) if (J.lane === p.lane && p.u < J.u && u >= J.u) p.lane = J.last;
+    if (p.lane && u >= M.lanes[p.lane].b) p.lane = M.lanes[p.lane].to; if (p.lane === 0 && u >= M.L) u -= M.L; p.u = u;
+    let hit = null; for (const r of R) if (r !== p.by && r.mode === 0 && r.lane === p.lane && r.ghostT <= 0 && Math.abs(mineDU(p.u, r.u)) < 1.6) hit = r;
+    if (hit || p.t <= 0) {
+      mineLP(M.lanes[p.lane], p.u, MQ); mineFx('boom', null, MQ);
