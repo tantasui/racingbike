@@ -299,6 +299,7 @@ function farRow(z) {
 }
 function farHb(base, dx, x, z) {
   const a = Math.abs(dx), F = course.far;
+  if (F.flat) return base - F.flat; // Motherboard: the far board is flat
   let y = base - 24 - F.drop * sstep(60, 300, a);
   y += (fbm(x * .004 + 3.1, z * .004 + 1.7) - .5) * F.hill * sstep(110, 500, a);
   y += ridged(x * .0016 + 9.2, z * .0016) * F.mtn * sstep(380, 950, a) * (1 - .6 * sstep(1500, 2200, a));
