@@ -139,3 +139,17 @@ function mineRailStrip(li, a, b, P, I, G) {
     prev = cur;
   }
 }
+function mineGeo(P, I, C) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); if (C) g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3)); g.setIndex(I); return g; }
+const mineYaw = q => Math.atan2(-q.tx, -q.tz); // rotation.y that points a box's -Z down the rail
+MINE.build = function () {
+  const M = MINE, V = MV; mineTrack(); const L = M.L, rnd = RNG(4242), R = (a, b) => a + (b - a) * rnd(), G = M.A ? M.A.cart.gauge : .6;
+  V.built = true; hemi.color.setRGB(.1, .075, .075); hemi.groundColor.setRGB(1, .4, .11); hemi.intensity = 1.05; sunL.intensity = .1;
+  if (!V.mat) V.mat = {
+    rail: M_(0xa88a78, 0x3a2414), sleeper: M_(0x3d2817), timber: M_(0x4d341f), rock: M_(0x17100c), iron: M_(0x222228), rust: M_(0x5a3524),
+    tun: patch(new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide })), cav: patch(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })),
+    lava: new THREE.ShaderMaterial({
+      uniforms: { uBC: BU.uBC, uBD: BU.uBD, uBP: BU.uBP, uTime, uFogC, uFogD },
+      vertexShader: BEND_GLSL + 'varying vec3 vW; varying float vFD; void main(){ vec4 wp=modelMatrix*vec4(position,1.); vW=wp.xyz; vec4 mv=viewMatrix*vec4(bendW(wp.xyz),1.); vFD=-mv.z; gl_Position=projectionMatrix*mv; }',
+      fragmentShader: NOISE_GLSL + FOG_GLSL + `uniform float uTime; varying vec3 vW;
+void main(){ if(vBZ>uBD.z||vBA>3.1416)discard;
+  vec2 p=vW.xz*.011; float f1=fb(p+vec2(uTime*.012,0.)); float f2=fb(p*2.4-vec2(0.,uTime*.02)+f1*1.6);
