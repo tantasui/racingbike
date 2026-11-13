@@ -154,3 +154,22 @@ void main(){
     for(int i=0;i<7;i++){ float dz=s-uZB[i]; if(abs(dz)<9.) gapM=0.; }
     for(int k=0;k<3;k++){
       float lc=k==0?vLane.x:k==1?vLane.y:vLane.z, wd=k==0?uLW.x:k==1?uLW.y:uLW.z, I=k==0?uTI.x:k==1?uTI.y:uTI.z, ph=k==0?uPh.x:k==1?uPh.y:uPh.z;
+      float dist=abs(d-lc);
+      for(int i=0;i<7;i++){ float dz=s-uZB[i]; padD=min(padD, length(vec2(abs(dz)-10.5, d-lc))); }
+      float on=smoothstep(wd+.06,wd-.06,dist)*gapM;
+      float pm=(fract((s-uTime*uPS-ph)/uPL)-.5)*uPL, pulse=exp(-pm*pm/10.);
+      float edgeL=smoothstep(wd-.32,wd-.12,dist)*on;                                             // tin-plated rim so the path edges read
+      float grain=.85+.15*n2(vec2(s*.8,d*3.));
+      vec3 cuC=vec3(.62,.36,.15)*grain; cuC=mix(cuC,vec3(.78,.74,.66),edgeL*.8);                 // copper body, silver rim
+      col=mix(col,cuC,on);
+      float ii=I*(1.+uPow*2.), e1=on*(.035*ii+edgeL*.05)+uPow*on*.25;
+      em+=e1; ec+=vec3(1.,.55,.2)*e1;
+      float core=smoothstep(wd*.55,wd*.2,dist);
+      float e2=on*core*.75*pulse; em+=e2; ec+=vec3(.55,.95,1.)*e2;
+    }
+    float pad=smoothstep(2.65,2.45,padD)*(1.-smoothstep(1.,.85,padD)*.6);                          // round pads where traces end
+    col=mix(col,vec3(.72,.66,.55),pad); em+=pad*.04; ec+=vec3(1.,.8,.5)*pad*.04;
+    // ---- board edge plating
+    float ed=smoothstep(1.25,.95,vInfo.y)*step(reg,.5); col=mix(col,vec3(.8,.62,.3),ed); em+=ed*.06; ec+=vec3(1.,.7,.3)*ed*.06;
+    // ---- ramps (gold chevrons) and speed pads (green chevrons)
+    if(flag>.5&&flag<1.5){ float ch=step(.5,fract(s*.33+abs(d)*.16)); col=mix(col,vec3(1.,.75,.25),.55+.3*ch); em+=.12+.25*ch; ec+=vec3(1.,.7,.25)*(.12+.25*ch); }
