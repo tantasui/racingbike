@@ -524,3 +524,22 @@ MOBO.step = function (dt) {
   // LEDs: twinkle; sweep on at power-up; dark inside a blackout
   if (MOBO.leds && MOBO.leds.m && (GM.t * 60 | 0) % 2 === 0) { const L = MOBO.leds, m = L.m, col = new THREE.Color(), sweep = MOBO.pow >= 0 ? MOBO.pow / 2.6 * T.len : -1;
     for (let i = 0; i < L.n; i++) { const s = L.s[i], h = L.hue[i]; let k = .25 + .35 * (Math.sin(t * (2 + h * 3) + h * 40) > .6 ? 1 : 0);
+      if (sweep >= 0 && s < sweep) k = 2.2 + .4 * Math.sin(t * 8 - s * .05);
+      if (MOBO.black > 0) { tpos(s, 0, TP1); const dd = Math.hypot(TP1.x - MOBO.blackP.x, TP1.z - MOBO.blackP.z); if (dd < 80) k *= 1 - Math.min(1, MOBO.black) * (1 - dd / 80); }
+      if (h < .5) col.setRGB(.25 * k, 1.1 * k, 1 * k); else if (h < .8) col.setRGB(1.2 * k, .55 * k, .12 * k); else col.setRGB(1 * k, .2 * k, .7 * k); m.setColorAt(i, col); }
+    m.instanceColor.needsUpdate = true; }
+  // graphics-card fans spin; the vortex fan speeds up with the player's speed
+  for (const rot of MOBO.cards) for (const f of rot) f.rotation.y += dt * 9;
+  const fanT = 3 + (GM.player ? GM.player.v * .3 : 0) + (MOBO.pow >= 0 ? 30 : 0); MOBO.fan += (fanT - MOBO.fan) * Math.min(1, dt * 1.5);
+  skyMat.uniforms.uFan.value = MOBO.fan; skyMat.uniforms.uFanP.value += MOBO.fan * dt * .25;
+};
+// ---- events (return true to replace the default handling)
+MOBO.evt = function (type, r, a) {
+  const P = r.isP && !GM.demo; tpos(r.s, r.d, TP1); const x = TP1.x, y = r.y, z = TP1.z;
+  switch (type) {
+    case 'pulse': burst(x, y + .6, z, 18, 8, .5, .3, [1.2, 2.4, 2.6], 0); if (P) { popup('OVERCLOCKED!', 'good'); moboSfx('electric_whoosh', .7, 1.2); AU.pad(); cam.shake = Math.max(cam.shake, .45); PAD.rumble(.3, .9, 350); } return true;
+    case 'full': if (P) { popup('FULL CHARGE!', 'combo'); moboSfx('electric_whoosh', .5, .8); } return true;
+    case 'cap': burst(x, y, z, 40, 12, .8, .4, [1.2, 2.2, 2.6], 4); if (P) { popup('CAPACITOR LAUNCH!', 'info'); AU.tone(55, .45, { to: 30, vol: .55 }); AU.noise(.25, { f: 300, to: 60, vol: .4, type: 'lowpass' }); moboSfx('electric_whoosh', .8, .7); cam.shake = Math.max(cam.shake, 1); PAD.rumble(1, .6, 300); MOBO.slow(.7); } return true;
+    case 'viaIn': burst(x, y, z, 24, 6, .6, .3, [.4, 2, 2.2], -4); if (P) { popup('VIA SHORTCUT!', 'info'); moboSfx('whoosh_bright_panning', .6, 1.4); } return true;
+    case 'viaOut': burst(x, y, z, 28, 9, .6, .35, [.4, 2, 2.2], 6); if (P) { moboSfx('electric_whoosh', .6, 1); cam.shake = Math.max(cam.shake, .6); } return true;
+    case 'hit': moboSfx('electric_zap', P || (a && a.isP && !GM.demo) ? .55 : 0, 1 + Math.random() * .3, .45); return false;
