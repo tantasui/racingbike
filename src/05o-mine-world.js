@@ -392,3 +392,17 @@ MINE.hud = function () {
   setTxt('hTime', fmtT(p.fin ? p.finT : GM.time)); setTxt('hPos', ORD[GM.order.indexOf(p)]); setTxt('hSpeed', Math.round(p.v * 2.237));
   const segs = $('hBoost').children; for (let i = 0; i < 5; i++) { const f = clamp(p.boost - i, 0, 1), k = 'bs' + i; if (hc[k] !== f) { hc[k] = f; segs[i].style.setProperty('--f', f); segs[i].classList.toggle('on', f >= 1); } }
   const full = p.boost >= 5, act = p.boostT > 0; if (hc.bf !== full) { hc.bf = full; $('hBoost').classList.toggle('full', full); } if (hc.ba !== act) { hc.ba = act; $('hBoost').classList.toggle('act', act); }
+  const hp = Math.round(clamp(p.health / 100, 0, 1) * 100); if (hc.hp !== hp) { hc.hp = hp; $('hHealthFill').style.width = hp + '%'; $('hHealth').classList.toggle('low', hp < 35); }
+  for (const r of GM.racers) if (r.dot) r.dot.style.left = clamp(r.prog / (M.LAPS * M.L), 0, 1) * 100 + '%';
+  setTxt('mnLapN', Math.min(M.LAPS, p.lap + 1) + ' / ' + M.LAPS);
+  const it = p.item || ''; if (hc.it !== it) { hc.it = it; const d = MITEMS.find(q => q[0] === it); $('mnItem').innerHTML = d ? `<b>${d[1]}</b><span>${d[2]}</span><small>SHIFT / Y</small>` : '<b class="none">—</b><span>NO ITEM</span>'; $('mnItem').classList.toggle('has', !!d); }
+  const d = p.prog - K.prog, lf = Math.round(clamp(1 - d / 230, 0, 1) * 100), hot = d < 48; if (hc.lf !== lf) { hc.lf = lf; $('mnLocoFill').style.width = lf + '%'; } if (hc.lh !== hot) { hc.lh = hot; $('mnLoco').classList.toggle('hot', hot); } setTxt('mnLocoD', Math.max(0, Math.round(d)) + ' m');
+  // next switch
+  let J = null; if (p.mode === 0) for (const j of M.junc) if (j.lane === p.lane && j.u > p.u && j.u - p.u < 170 && (!J || j.u < J.u)) J = j;
+  const jk = J ? J.id + '|' + (J.lockT > 0 ? 'L' + J.forced : 'F' + J.rest) + '|' + (p.ghostT > 0) : '';
+  if (hc.jk !== jk) { hc.jk = jk; const e = $('mnJunc'); e.classList.toggle('on', !!J);
+    if (J) { const lock = J.lockT > 0 && p.ghostT <= 0, cls = k => lock ? (k === J.forced ? 'go' : 'no') : (k === J.rest ? 'go' : 'free'), nm = k => J.lab[k] + (J.star[k] ? ' ★' : '');
+      e.innerHTML = `<i class="${cls(0)}">◄ ${nm(0)}</i><em id="mnJd"></em><i class="${cls(1)}">${nm(1)} ►</i><small>${lock ? 'SWITCH LOCKED' : 'LEAN TO THROW THE SWITCH'}</small>`; } }
+  if (J) { const e = $('mnJd'); if (e) e.textContent = Math.round(J.u - p.u) + ' m'; }
+  const warn = p.lockT > 0 ? 'BRAKES LOCKED!' : p.oilT > 0 ? 'OIL — NO GRIP' : hot && !p.fin ? '⚠ LOCOMOTIVE ⚠' : p.mode === 0 && M.env[p.ci] && p.pos.y - M.lavaY < 4.2 ? '⚠ LAVA HEAT ⚠' : ''; setTxt('hWarn', warn);
+};
