@@ -195,3 +195,17 @@ void main(){ if(vBZ>uBD.z||vBA>3.1416)discard;
       const P = [], C = [], I = [], rows = []; for (let u = a; u <= b; u += 4) rows.push(u); if (rows[rows.length - 1] !== b) rows.push(b);
       const ring = (u, sc, dark) => { const i = u % L; PR.forEach((p, j) => { const fl = j === 0 || j >= 8, jr = fl && sc === 1 ? 0 : (hash2(u * .37, j) - .5) * .8 * sc, jy = fl && sc === 1 ? 0 : (hash2(u * .91, j + 9) - .5) * .6 * sc, lat = p[0] * sc + jr;
         P.push(M.cx[i] + M.rx[i] * lat, M.cy[i] + (sc === 1 ? p[1] : p[1] * sc - 1.5) + jy, M.cz[i] + M.rz[i] * lat);
+        const d = ((u - a) % 24) - 12, gl = Math.exp(-d * d / 50) * (fl ? .5 : 1), bb = (.1 + .1 * hash2(u, j * 3.1)) * (fl ? .7 : 1) * dark; C.push(bb + .5 * gl * dark, bb * .72 + .23 * gl * dark, bb * .6 + .06 * gl * dark); }); };
+      ring(a, 4.2, .5); for (const u of rows) ring(u, 1, 1); ring(b, 4.2, .5);
+      const nr = rows.length + 2, nc = PR.length; for (let r = 0; r < nr - 1; r++) for (let j = 0; j < nc - 1; j++) { const p0 = r * nc + j, p1 = p0 + nc; I.push(p0, p1, p0 + 1, p0 + 1, p1, p1 + 1); }
+      addMesh(mineGeo(P, I, C), T.tun);
+      for (let u = a + 6; u < b - 2; u += 8) { const i = u % L, ry = Math.atan2(-M.hx[i], -M.hz[i]), y = M.cy[i];
+        for (const sd of [-1, 1]) posts.push({ x: M.cx[i] + M.rx[i] * sd * 2.95, y: y + 1.6, z: M.cz[i] + M.rz[i] * sd * 2.95, ry, sx: .3, sy: 4.1, sz: .3 });
+        posts.push({ x: M.cx[i], y: y + 3.75, z: M.cz[i], ry, sx: 6.4, sy: .32, sz: .32 });
+        if ((u - a - 6) % 24 === 0) { const sd = (u / 24 | 0) % 2 ? 1 : -1; lamps.push({ x: M.cx[i] + M.rx[i] * sd * 2.2, y: y + 3.3, z: M.cz[i] + M.rz[i] * sd * 2.2, sx: .22, sy: .3, sz: .22 }); }
+        if (rnd() < .45) { const sd = rnd() < .5 ? -1 : 1, s = R(.5, 1.1); ore.push({ x: M.cx[i] + M.rx[i] * sd * 2.5, y: y - .3, z: M.cz[i] + M.rz[i] * sd * 2.5, sx: s, sy: s * .7, sz: s, ry: R(0, 6) }); if (rnd() < .6) gems.push({ x: M.cx[i] + M.rx[i] * sd * 2.4, y: y + s * .3, z: M.cz[i] + M.rz[i] * sd * 2.4, sx: .14, ry: R(0, 6), rx: R(0, 3) }); } }
+    }
+    inst(new THREE.BoxGeometry(1, 1, 1), T.timber, posts); inst(new THREE.BoxGeometry(1, 1, 1), MB(2.6, 1.35, .4), lamps); inst(new THREE.DodecahedronGeometry(1, 0), T.rock, ore); inst(new THREE.OctahedronGeometry(1, 0), MB(.35, 1.5, 1.7), gems); }
+  // --- the cavern: outer wall leaning in to a roof, a central rock mass, both lit from below by the lava
+  { const ax = M.ext[0], az = M.ext[1], seg = 84, rows = 11, H = 190, y0 = -18;
+    const shell = fn => { const P = [], C = [], I = [];
