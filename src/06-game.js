@@ -229,6 +229,7 @@ function updHUD() {
   const segs = $('hBoost').children; for (let i = 0; i < 5; i++) { const f = clamp(p.boost - i, 0, 1), k = 'bs' + i; if (hc[k] !== f) { hc[k] = f; segs[i].style.setProperty('--f', f); segs[i].classList.toggle('on', f >= 1); } }
   const full = p.boost >= 5, act = p.boostT > 0; if (hc.bf !== full) { hc.bf = full; $('hBoost').classList.toggle('full', full); } if (hc.ba !== act) { hc.ba = act; $('hBoost').classList.toggle('act', act); }
   const hp = Math.round(clamp(p.health / p.st.hp, 0, 1) * 100); if (hc.hp !== hp) { hc.hp = hp; $('hHealthFill').style.width = hp + '%'; $('hHealth').classList.toggle('low', hp < 35); }
+  if (course.mb) MOBO.hud(p);
   for (const r of GM.racers) r.dot.style.left = clamp(r.s / track.fin, 0, 1) * 100 + '%';
   const ch = p.charge > .05 ? Math.round(p.charge * 100) : 0; if (hc.ch !== ch) { hc.ch = ch; $('hCharge').style.width = ch + '%'; $('hChargeBox').style.opacity = ch ? 1 : 0; }
 }
@@ -241,7 +242,7 @@ function toCourse() { GM.state = 'course'; show('scrCourse'); AU.ui(); }
 function pickRide(i) { GM.ride = i; document.querySelectorAll('#rideCards .card').forEach((c, k) => c.classList.toggle('sel', k === i)); AU.ui(); if (GM.built >= 0) newRace(true); }
 function pickCourse(i) { GM.course = i; document.querySelectorAll('#courseCards .card').forEach((c, k) => c.classList.toggle('sel', k === i)); AU.ui(); ensureWorld(i, () => newRace(true)); }
 function pickDiff(i) { GM.diff = i; document.querySelectorAll('#diffBtns button').forEach((c, k) => c.classList.toggle('sel', k === i)); AU.ui(); }
-function startRace() { AU.init(); ensureWorld(GM.course, () => { newRace(false); GM.state = 'race'; show(null); for (const k in hc) delete hc[k]; }); }
+function startRace() { AU.init(); ensureWorld(GM.course, () => { newRace(false); GM.state = 'race'; show(null); for (const k in hc) delete hc[k]; $('hud').classList.toggle('mb', !!course.mb); $('hud').classList.toggle('mine', !!course.mine); if (course.mb) MOBO.raceStart(); if (course.mine) MINE.raceStart(); }); }
 function pause() { if (GM.state !== 'race') return; GM.state = 'paused'; show('scrPause'); AU.silence(); }
 function resume() { if (GM.state !== 'paused') return; GM.state = 'race'; show(null); }
 function showResults() {
