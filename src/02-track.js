@@ -115,6 +115,7 @@ function ground(s, d, o) {
   o.e = e;
   if (side === 1) { o.reg = 3; o.y = base + Math.min(e, 1.5) * .5 + Math.max(0, e - 1.5) * 2.6; if (e > 1) o.wall = d > 0 ? 1 : -1; }
   else if (side === 2) { o.reg = 4; o.y = base - .4; if (e > .5) o.lava = true; }
+  else if (side === 3) { o.reg = 2; o.y = base - Math.min(e, 4) * .04; } // open flat board (Motherboard only)
   else { o.reg = 2; if (e <= 2.5) o.y = base - e * e * .07; else { o.void = true; o.y = base - .45 - (e - 2.5) * 1.9; } }
   return o;
 }
