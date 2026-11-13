@@ -115,3 +115,22 @@ MOBO.load = function () {
       // audio files (decoded once the audio context exists)
       const au = ['music/dark_synthwave', 'sfx/electric_zap', 'sfx/electric_whoosh', 'sfx/whoosh_bright_panning', 'sfx/wind_loop'];
       await Promise.all(au.map(n => fetch(base + 'audio/' + n + '.ogg').then(r => r.ok ? r.arrayBuffer() : null).then(b => { if (b) MOBO.snd.raw[n.split('/')[1]] = b; }).catch(() => { })));
+      MOBO.A = A;
+    } catch (e) {
+      MOBO.failed = true; MOBO.A = null; console.warn('Motherboard assets unavailable, using primitives:', e.message || e);
+      setTimeout(() => toast('MOTHERBOARD: RUN "npm run dev" FOR FULL ASSETS'), 300);
+    }
+  })();
+  return MOBO.loading;
+};
+
+// ---------------------------------------------------------------- PHASE 1: the board, drawn entirely in a shader
+const PCB_FS = NOISE_GLSL + FOG_GLSL + `
+uniform float uTime,uPow,uPS,uPL,uFin; uniform vec3 uTI,uPh,uLW,uSun,uBC; uniform vec4 uVia[4],uCap[8],uBlack; uniform float uZB[7]; uniform vec4 uHL[6]; uniform vec3 uHLC; uniform vec4 uHot;
+varying vec2 vSD; varying vec4 vInfo; varying vec3 vLane,vW;
+void main(){
+  if(vBZ>uBD.z||vBA>3.1416)discard;
+  float s=vSD.x, d=vSD.y, reg=vInfo.x, zone=mod(vInfo.w,10.), flag=floor(vInfo.w/10.+.01);
+  vec3 col=vec3(.016,.1,.048); vec3 ec=vec3(0.); float em=0.;
+  bool under=uBC.y<vW.y-.25;
+  float weave=(step(.5,fract(s*1.6))*2.-1.)*(step(.5,fract(d*1.6))*2.-1.)*.5+.5;               // fibreglass weave
