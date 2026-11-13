@@ -167,3 +167,17 @@ void main(){ if(vBZ>uBD.z||vBA>3.1416)discard;
       mineRailStrip(l.id, cur, l.b, P, I, G); }
     addMesh(mineGeo(P, I), T.rail); }
   // --- sleepers (the collapsing trestles carry their own, which can fall)
+  const inTrestle = (li, u) => M.trestles.some(t => t.lane === li && u >= t.a && u <= t.b);
+  { const items = [];
+    for (const l of M.lanes) for (let u = l.a + .4; u < l.b; u += .9) {
+      if (inTrestle(l.id, u) || l.gaps.some(g => !g.dyn && g.lap === 0 && u > g.a - .3 && u < g.b + .3)) continue;
+      const q = mineLP(l, u, MQ); if (l.id) { const o = mineLP(M.lanes[u < (l.a + l.b) / 2 ? l.from : l.to], u, MQ2); if (Math.abs(o.ox - q.ox) < 1.1 && Math.abs(o.oy - q.oy) < .4) continue; }
+      items.push({ x: q.x, y: q.y - .2, z: q.z, ry: mineYaw(q), rx: Math.asin(clamp(q.ty, -1, 1)), sx: G * 2 + .55, sy: .14, sz: .24 });
+    }
+    inst(new THREE.BoxGeometry(1, 1, 1), T.sleeper, items); }
+  // --- trestle supports under every open-air rail: A-frames down into the lava
+  { const legs = [], beams = [];
+    for (const l of M.lanes) for (let u = l.a + 2; u < l.b; u += 9) {
+      const i = Math.round(u) % L; if (!M.env[i]) continue; const q = mineLP(l, u, MQ), hi = q.oy > 4, hw = hi ? 2.0 : .8, top = q.y - .32, bot = -16, H = top - bot, ry = mineYaw(q), rx = -q.tz / (Math.hypot(q.tx, q.tz) || 1), rz = q.tx / (Math.hypot(q.tx, q.tz) || 1);
+      for (const sd of [-1, 1]) legs.push({ x: q.x + rx * sd * (hw + H * .04), y: (top + bot) / 2, z: q.z + rz * sd * (hw + H * .04), ry, rz: sd * .08, sx: .26, sy: H, sz: .26 });
+      beams.push({ x: q.x, y: top - .12, z: q.z, ry, sx: hw * 2 + .7, sy: .22, sz: .26 }); if (H > 14 && !hi) beams.push({ x: q.x, y: top - 7, z: q.z, ry, sx: hw * 2 + 1.5, sy: .2, sz: .22 });
