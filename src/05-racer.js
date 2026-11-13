@@ -298,12 +298,15 @@ function aiCtl(r, dt) {
     else if (onBranch) tgt = sh.side * (w - 2);
   }
   let slow = (onBranch || A.take && A.sh && r.s > A.sh.s0 - 20 && r.s < A.sh.s1) && st.hand < 7 ? 26 : 99;
+  for (const p of T.pads) if (p.s > r.s + 4 && p.s < r.s + look * 1.8 && Math.abs(p.d - r.d) < 5.5) tgt = p.d; // go for speed pads
+  for (const k of T.kicks) { const q = k.s0 + k.len - r.s; if (q > -1 && q < v * 1.3 + 6 && Math.abs(k.d - r.d) < k.hw + 1) tgt = clamp(r.d, -w + 2, w - 2); }
   // hazards
   for (const p of T.geysers) if (p.s > r.s - 2 && p.s < r.s + look * 1.6 && Math.abs(p.d - tgt) < 4) { tgt = p.d + (tgt >= p.d ? 1 : -1) * 4.6; if (Math.abs(tgt) > w - 1.5) tgt = p.d - Math.sign(tgt) * 4.6; }
   for (const p of T.pools) if (p.s > r.s - 2 && p.s < r.s + look * 1.6 && Math.abs(p.d - tgt) < p.r + 2) { tgt = p.d + (tgt >= p.d ? 1 : -1) * (p.r + 2.4); if (Math.abs(tgt) > w - 1.5) tgt = p.d - Math.sign(tgt) * (p.r + 2.4); }
   for (const b of GM.boulders) if (b.on && b.s > r.s - 3 && b.s < r.s + 30 && Math.abs(b.d + b.dir * 4 - r.d) < 4.5) { tgt = clamp(r.d - b.dir * 5, -w + 1.5, w - 1.5); if (b.s - r.s < 14) c.acc = 0; }
   for (const o of GM.racers) if (o !== r && !o.state) { const ds = o.s - r.s; if (ds > 0 && ds < 7 && Math.abs(o.d - r.d) < 1.4 && o.v < v) tgt += (r.d >= o.d ? 1 : -1) * 2; }
   for (const l of T.lips) { const q = l - r.s; if (q > v * 1.3 + 6) break; if (q > -2) { tgt = clamp(r.d, -w + 2, w - 2); break; } } // square up before a launch
+  if (course.mb) tgt = MOBO.aiAvoid(r, tgt, look, w, c);
   // steering with curvature feed-forward
   const rate = (1 + st.hand * .14) / (1 + v / 50), aDes = clamp((tgt - r.d) / (look * .55), -.55, .55);
   c.steer = clamp((aDes - r.a) * 4.5 + kapAt(r.s + v * .15) * v / rate, -1, 1);
