@@ -164,9 +164,12 @@ void main(){
   mPre = postMat('varying vec2 vUv; uniform sampler2D t; void main(){ vec3 c=texture2D(t,vUv).rgb; float m=max(c.r,max(c.g,c.b)); gl_FragColor=vec4(min(c,vec3(8.))*smoothstep(.92,1.6,m),1.); }', { t: { value: null } });
   mDown = postMat('varying vec2 vUv; uniform sampler2D t; uniform vec2 px; void main(){ vec3 c=texture2D(t,vUv+px*vec2(-1,-1)).rgb+texture2D(t,vUv+px*vec2(1,-1)).rgb+texture2D(t,vUv+px*vec2(-1,1)).rgb+texture2D(t,vUv+px*vec2(1,1)).rgb; gl_FragColor=vec4(c*.25,1.); }', { t: { value: null }, px: { value: new THREE.Vector2() } });
   mUp = postMat('varying vec2 vUv; uniform sampler2D t,h; uniform vec2 px; void main(){ vec3 c=texture2D(t,vUv+px*vec2(-1,-1)).rgb+texture2D(t,vUv+px*vec2(1,-1)).rgb+texture2D(t,vUv+px*vec2(-1,1)).rgb+texture2D(t,vUv+px*vec2(1,1)).rgb; gl_FragColor=vec4(c*.25+texture2D(h,vUv).rgb,1.); }', { t: { value: null }, h: { value: null }, px: { value: new THREE.Vector2() } });
-  mComp = postMat(`varying vec2 vUv; uniform sampler2D tS,tB; uniform float uBloom,uBlur,uWhite,uFlash,uAsp,uSat; uniform vec2 uC; uniform vec3 uTint;
+  mComp = postMat(`varying vec2 vUv; uniform sampler2D tS,tB; uniform float uBloom,uBlur,uWhite,uFlash,uAsp,uSat,uStretch,uLines,uTimeP,uHeat; uniform vec2 uC; uniform vec3 uTint,uGrade,uLift;
+float hh(float n){return fract(sin(n)*43758.5453);}
 void main(){
-  vec2 dir=vUv-uC; float r=length(dir*vec2(uAsp,1.));
+  vec2 uv=uC+(vUv-uC)*vec2(1.-uStretch,1.+uStretch*.35);   // slight screen stretch at speed (0 = off)
+  uv.x+=sin(uv.y*64.+uTimeP*5.)*uHeat*.0022*smoothstep(.8,.15,uv.y);   // heat shimmer (0 = off)
+  vec2 dir=uv-uC; float r=length(dir*vec2(uAsp,1.));
   float amt=uBlur*smoothstep(.16,.62,r);
   vec3 col=vec3(0.); for(int i=0;i<8;i++){ col+=texture2D(tS,vUv-dir*amt*float(i)*.02).rgb; } col*=.125;
   vec3 bl=texture2D(tB,vUv).rgb; col+=bl*uBloom;
