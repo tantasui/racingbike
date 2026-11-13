@@ -378,3 +378,17 @@ MINE.camera = function (dt) {
   const fovT = 63 + sp * 18 + boost * 10; cam.fov += (fovT - cam.fov) * (1 - Math.exp(-dt * 4)); camera.fov = cam.fov; camera.updateProjectionMatrix();
   // curved world only out in the open cavern; tunnels (and their approaches) stay straight so they read clearly
   let kt = 1; for (const d of [0, 60, 120, 180]) if (!M.env[(p.ci + d) % M.L]) kt = 0; M.bendK += (kt - M.bendK) * Math.min(1, dt * 1.1);
+  BU.uBP.value.set(0, 0, 0, 0);   // flat world (the curved cavern was removed)
+  let fx = cam.lx - cam.px, fz = cam.lz - cam.pz; const fl = Math.hypot(fx, fz) || 1; setBend(fx / fl, fz / fl);
+  const U = mComp.uniforms, wh = GM.demo ? 0 : Math.max(p.blindT > 0 ? .9 : 0, M.steamK * .6); GM.white += (wh - GM.white) * Math.min(1, dt * 6);
+  U.uBlur.value = GM.demo ? .12 : clamp((p.v - 14) / 24, 0, 1) * .6 + boost * .5; U.uWhite.value = GM.white; U.uFlash.value = cam.flash + boost * .1; U.uBloom.value = .62 + boost * .15;
+  U.uHeat.value = .35 + M.bendK * .65; U.uLines.value = GM.demo ? 0 : boost * .45; uFogD.value = scene.fog.density = course.fogD;
+};
+
+// ---------------------------------------------------------------- HUD: lap, held power-up, locomotive distance, next switch
+MINE.raceStart = function () { toast('A/D LEAN · SPACE JUMP (+LEAN = RAIL JUMP) · C DUCK · SHIFT USE ITEM'); };
+MINE.hud = function () {
+  const M = MINE, p = GM.player, K = M.loco;
+  setTxt('hTime', fmtT(p.fin ? p.finT : GM.time)); setTxt('hPos', ORD[GM.order.indexOf(p)]); setTxt('hSpeed', Math.round(p.v * 2.237));
+  const segs = $('hBoost').children; for (let i = 0; i < 5; i++) { const f = clamp(p.boost - i, 0, 1), k = 'bs' + i; if (hc[k] !== f) { hc[k] = f; segs[i].style.setProperty('--f', f); segs[i].classList.toggle('on', f >= 1); } }
+  const full = p.boost >= 5, act = p.boostT > 0; if (hc.bf !== full) { hc.bf = full; $('hBoost').classList.toggle('full', full); } if (hc.ba !== act) { hc.ba = act; $('hBoost').classList.toggle('act', act); }
