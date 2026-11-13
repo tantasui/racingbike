@@ -465,3 +465,23 @@ MOBO.racerPost = function (r, dt) {
   // chip pin gaps
   for (let ci = 0; ci < MOBO.chips.length; ci++) { const c = MOBO.chips[ci]; if (!c.rows) continue; for (let row = 0; row < 2; row++) { const rs = c.rows[row]; if (ps < rs && s >= rs) {
     for (const pd of c.pinD) if (Math.abs(d - pd) < c.pinW + .35) { r.crash('pin'); return; }
+    const g = c.gaps.findIndex(G => d > G.d0 && d < G.d1); if (g >= 0 && arcState(ci, row, g) === 2) { r.crash('shock'); return; } } } }
+  // capacitor towers on the board and solid architecture beside it
+  for (const t of MOBO.towers) if (Math.abs(s - t.s) < t.r + .6 && Math.hypot(s - t.s, d - t.d) < t.r + .2) { r.crash('wall'); return; }
+  if (MOBO.solids) for (const o of MOBO.solids) if (Math.abs(s - o.s) < o.r + .5 && Math.hypot(s - o.s, d - o.d) < o.r + .3) { r.crash('wall'); return; }
+  // hot zone: the power-section shortcut drains health but runs hot (faster)
+  r.hot = false;
+  for (const h of MOBO.hot) if (s > h.s0 && s < h.s1) { ground(s, d, G0); if (G0.reg === 1) { r.hot = true; r.health -= 11 * dt; r.v = Math.min(r.v + 5 * dt, r.st.vmax * 1.2); r.flash = .1; if (r.health <= 0) { r.crash('shock'); return; } } }
+  // molten solder
+  for (const b of MOBO.blobs) if (b.st === 1 && Math.abs(s - b.s) < 1.8 && Math.abs(d - b.d) < 1.8) { r.crash('solder'); return; }
+};
+MOBO.slow = t => { MOBO.slowT = Math.max(MOBO.slowT, t); };
+MOBO.timeScale = function (dt) { if (MOBO.slowT <= 0 || GM.state !== 'race') { MOBO.slowT = 0; return 1; } MOBO.slowT -= dt; return MOBO.slowT < .15 ? lerp(1, .35, MOBO.slowT / .15) : .35; };
+// per-frame world update
+MOBO.step = function (dt) {
+  const T = track, lead = GM.demo ? GM.racers[0] : GM.player, U = MOBO.U;
+  for (const c of MOBO.caps) c.ch = Math.min(1, c.ch + dt / 7);
+  MOBO.caps.slice(0, 8).forEach((c, i) => U.uCap.value[i].set(c.s, c.d, c.r, c.ch));
+  // trace intensity: steady glow with a slow per-trace flicker; power-up overdrives it
+  const t = uTime.value; U.uTI.value.set(1 + .12 * Math.sin(t * 2.3), 1 + .12 * Math.sin(t * 1.7 + 2), 1 + .12 * Math.sin(t * 2.9 + 4));
+  // zone banner
