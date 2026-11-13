@@ -368,3 +368,22 @@ MOBO.buildScenery = function () {
     // far board / ceiling: cheap box chips with glowing pin rows (the full models cost ~2.3k triangles each)
     const fb = [], fp = [];
     for (let n = 0; n < 1400; n++) { const z = R(T.cz[T.N - 1] - 1500, T.cz[0] + 100), row = farRow(z), dx = (rnd() < .5 ? -1 : 1) * R(70, 1300), x = row.x + dx, y = farHb(row.base, dx, x, z), k = R(8, 30) * (1 + Math.abs(dx) / 900), L = k * (rnd() < .5 ? 4.8 : 1.4), ry = R(0, TAU);
+      fb.push({ x, y: y + k * .45, z, ry, sx: k * 1.6, sy: k * .9, sz: L, c: [.05, .055, .065] });
+      for (const sd of [-1, 1]) fp.push({ x: x + Math.cos(ry) * sd * k * .85, y: y + k * .2, z: z - Math.sin(ry) * sd * k * .85, ry, sx: k * .18, sy: k * .4, sz: L * .92, c: [.5, .52, .55] }); }
+    inst(new THREE.BoxGeometry(1, 1, 1), patch(new THREE.MeshLambertMaterial({ color: 0xffffff })), fb); inst(new THREE.BoxGeometry(1, 1, 1), patch(new THREE.MeshLambertMaterial({ color: 0xffffff })), fp);
+    inst(new THREE.BoxGeometry(1, 1, 1), MB(1, 1, 1, .3), lights);
+    // --- chip bridges: a giant DIP-8 straddles the road; you ride through the gaps between its pins
+    const pins = moboPins(A.chipS), K = 22;
+    for (const c of MOBO.chips) {
+      const p = onTrack(c.s, 0); c.K = K; c.rowZ = pins.rowZ * K; c.pinD = pins.x.map(x => x * K); c.pinW = pins.w * K * .5;
+      c.rows = [c.s - c.rowZ, c.s + c.rowZ]; c.gaps = [];
+      const ed = [-arrAt(T.wid, c.s) - 1].concat(c.pinD, [arrAt(T.wid, c.s) + 1]);
+      for (let g = 0; g < ed.length - 1; g++) c.gaps.push({ d0: ed[g] + (g ? c.pinW : 0), d1: ed[g + 1] - (g < ed.length - 2 ? c.pinW : 0) });
+      moboInst(small, [{ x: p.x, y: Math.min(...[-1, 1].map(sd => onTrack(c.s + sd * c.rowZ, 0).y)) - .3, z: p.z, ry: -p.th, s: K }], chipSwap);
+    }
+    // --- heat sinks as fin ridges along Power Works and Port Run (fins from the graphics card, in clean brushed metal)
+    const fins = moboParts(A.card, { only: /fins/ }), fItems = [];
+    for (const [a, b] of [[zs(1), zs(2)], [zs(5), T.len - 40]]) for (let s = a; s < b; s += 30) for (const sd of [-1, 1]) { const p = sideSpot(s, 2.6, 3.4, sd); if (!p) continue; const sz = fins.size; fItems.push({ x: p.x, y: p.y - .2, z: p.z, ry: -p.th + PI / 2, sx: 30 / sz.x, sy: 6 / sz.y, sz: 4 / sz.z }); }
+    moboInst(fins, fItems, () => 'silver');
+    // --- whole graphics cards, CPUs, transistor & capacitor dioramas as giant set pieces off the road
+    MOBO.cards = [];
