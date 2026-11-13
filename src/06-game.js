@@ -5,17 +5,19 @@ function popup(text, cls) {
   setTimeout(() => e.remove(), 1700);
 }
 function evt(type, r, a) {
+  if (course.mb && MOBO.evt(type, r, a)) return;
   const P = r.isP && !GM.demo, pl = GM.player, near = pl && Math.abs(r.s - pl.s) < 70 && !GM.demo;
   tpos(r.s, r.d, TP1); const x = TP1.x, y = r.y, z = TP1.z, tc = RIDES[r.ride].trail, ac = course.amb.col;
   switch (type) {
     case 'jump': burst(x, y + .2, z, 8, 4, .5, .25, ac); if (P) { AU.jump(); if (a) popup('PERFECT LAUNCH!', 'good'); } break;
-    case 'land': burst(x, y + .2, z, 8 + a * 16 | 0, 4 + a * 7, .7, .3, ac); if (P) { AU.land(a); cam.shake = Math.max(cam.shake, a * .9); } break;
+    case 'land': burst(x, y + .2, z, 8 + a * 16 | 0, 4 + a * 7, .7, .3, ac); if (P) { AU.land(a); cam.shake = Math.max(cam.shake, a * .9); PAD.rumble(a * .8, a * .4, 140 + a * 160); } break;
+    case 'pad': burst(x, y + .5, z, 22, 9, .6, .35, [.5, 2.2, 1], 0); if (P) { AU.pad(); popup('SPEED BOOST!', 'good'); cam.shake = Math.max(cam.shake, .5); PAD.rumble(.3, .9, 450); } break;
     case 'trick': if (P) { popup(a.names.join(' + ') + '  +' + a.pts, 'trick'); if (a.n > 1) popup('TRICK COMBO x' + a.n + '!', 'combo'); AU.trick(a.n); } burst(x, y + 1, z, 14, 6, .8, .3, [tc[0] + .3, tc[1] + .3, tc[2] + .3], 2); break;
     case 'clean': if (P) popup('CLEAN LANDING!', 'good'); break;
     case 'sloppy': if (P) { popup('SLOPPY LANDING', 'bad'); cam.shake = Math.max(cam.shake, .7); } break;
     case 'crash':
       burst(x, y + 1, z, 30, 10, 1, .4, [tc[0] + .4, tc[1] + .4, tc[2] + .4]); burst(x, y + .5, z, 18, 7, .9, .5, a === 'lava' ? [2, .6, .1] : ac);
-      if (P) { a === 'lava' ? AU.splash() : AU.crash(); cam.shake = 1.5; cam.flash = .5; popup({ ko: 'KNOCKED OUT!', fall: 'OFF COURSE!', lava: 'BURNED!', avalanche: 'SWEPT AWAY!', boulder: 'BOULDER!' }[a] || 'WIPEOUT!', 'bad'); }
+      if (P) { a === 'lava' ? AU.splash() : AU.crash(); cam.shake = 1.5; cam.flash = .5; PAD.rumble(1, 1, 550); popup({ ko: 'KNOCKED OUT!', fall: 'OFF COURSE!', lava: course.mb ? 'SHORTED!' : 'BURNED!', avalanche: 'SWEPT AWAY!', boulder: 'BOULDER!', shock: 'SHORTED!', solder: 'SOLDERED!' }[a] || 'WIPEOUT!', 'bad'); }
       else if (near) AU.noise(.3, { f: 700, to: 150, vol: .12, type: 'lowpass' });
       break;
     case 'bounce': burst(TP1.x, r.ry, TP1.z, 6, 3, .5, .3, ac); break;
