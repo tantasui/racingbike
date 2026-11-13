@@ -425,3 +425,19 @@ MINE.ai = function (r, dt) {
     if (ok) { A.side = Math.random() < .5 ? -1 : 1; A.err = (Math.random() - .5) * 2 * (1.3 - sk) * 1.5; c.jumpHit = true; c.lean = A.side; A.rjCD = 5 + Math.random() * 5; A.stuck = 0; }
   } else if (!c.jumpHit) A.err = 0;
   // side shoves at carts alongside on a parallel rail
+  if (Math.random() < dt * (.4 + D.aggr)) for (const o of GM.racers) if (o !== r && o.mode !== 2) { const dx = o.pos.x - r.pos.x, dz = o.pos.z - r.pos.z, i = r.ci, al = dx * M.hx[i] + dz * M.hz[i], la = dx * M.rx[i] + dz * M.rz[i]; if (Math.abs(al) < 2 && Math.abs(la) > .9 && Math.abs(la) < 4.5 && Math.abs(o.pos.y - r.pos.y) < 1.5) { if (la < 0) c.pL = true; else c.kR = true; } }
+  return c;
+};
+function minePlayerCtl(r) {
+  const c = r.c, k = playerCtl(r.pc || (r.pc = {}));
+  c.acc = k.acc; c.brake = k.brake; c.lean = k.steer; c.jumpHit = k.jump && !r.pj; r.pj = k.jump; c.use = k.spec && !r.ps; r.ps = k.spec; c.boostHit = k.boost; c.pL = k.pL; c.kR = k.kR;
+  c.duck = !!(keys.KeyC || keys.KeyX || (PAD.on && PAD.b[4])); c.choice = null; return c;
+}
+
+// ---------------------------------------------------------------- race flow
+MINE.newRace = function (demo) {
+  const M = MINE; GM.demo = demo; mineTrack();
+  for (const r of GM.racers) r.dispose(); GM.racers = [];
+  const rides = [GM.ride, 0, 1, 2, 1, 2], slots = [3, 0, 1, 2, 4, 5];
+  for (let i = 0; i < 6; i++) { const r = new MineCart(i, rides[i], i === 0); r.place(0, 42 - slots[i] * 3.4); GM.racers.push(r); }
+  GM.player = GM.racers[0]; GM.time = 0; GM.count = demo ? 0 : 3.4; GM.lastBeep = 4; GM.finWait = 0; GM.white = 0; GM.order = GM.racers.slice().sort((a, b) => b.prog - a.prog);
