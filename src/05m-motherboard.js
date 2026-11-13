@@ -134,3 +134,23 @@ void main(){
   vec3 col=vec3(.016,.1,.048); vec3 ec=vec3(0.); float em=0.;
   bool under=uBC.y<vW.y-.25;
   float weave=(step(.5,fract(s*1.6))*2.-1.)*(step(.5,fract(d*1.6))*2.-1.)*.5+.5;               // fibreglass weave
+  if(reg<1.5){
+    col*=.9+.14*weave*(.6+.4*n2(vec2(s,d)*.3));
+    // ---- fine traces under the solder mask (lighter green), denser in busy zones
+    float busy=zone<.5?.35:zone<1.5?.55:zone<2.5?.4:zone<3.5?.92:zone<4.5?.75:.5;
+    float ft=0., cu=0.;
+    for(int L=0;L<2;L++){
+      float sc=L==0?3.2:1.4; vec2 g=vec2(s,d)/sc; vec2 id=floor(g),f=fract(g); float h=h21(id+zone*17.+float(L)*5.);
+      float wdt=L==0?.07:.11;
+      if(h<busy*.45) ft=max(ft,smoothstep(wdt,wdt*.4,abs(f.y-.5)));
+      else if(h<busy*.8) ft=max(ft,smoothstep(wdt,wdt*.4,abs(f.x-.5)));
+      else if(h>.93&&L==0) cu=max(cu,smoothstep(.2,.14,length(f-.5)));                       // exposed pad
+    }
+    if(zone>3.5&&zone<4.5) ft=max(ft,smoothstep(.09,.04,abs(fract(d/1.1)-.5))*step(.35,n2(vec2(s*.02,d*.9))));   // memory: parallel bus lines
+    if(zone>2.5&&zone<3.5){ vec2 bg=fract(vec2(s,d)/1.5)-.5; cu=max(cu,smoothstep(.19,.13,length(bg))*step(.55,n2(floor(vec2(s,d)/9.)*1.7))); } // BGA pad fields
+    col=mix(col,vec3(.06,.24,.1),ft*.9); col=mix(col,vec3(.7,.68,.62),cu);
+    // ---- main traces: wide, bright copper with per-trace intensity and current pulses
+    float gapM=1., padD=1e3;
+    for(int i=0;i<7;i++){ float dz=s-uZB[i]; if(abs(dz)<9.) gapM=0.; }
+    for(int k=0;k<3;k++){
+      float lc=k==0?vLane.x:k==1?vLane.y:vLane.z, wd=k==0?uLW.x:k==1?uLW.y:uLW.z, I=k==0?uTI.x:k==1?uTI.y:uTI.z, ph=k==0?uPh.x:k==1?uPh.y:uPh.z;
