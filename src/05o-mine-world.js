@@ -308,3 +308,17 @@ function mineFrameVis(dt) {
   if (!GM.demo) mineAudio(dt, pl); else AU.silence();
 }
 
+// ---------------------------------------------------------------- events: pop-ups, particles, one-shot sounds
+function mineFx(type, r, a) {
+  const M = MINE, P = r && r.isP && !GM.demo, x = r ? r.pos.x : 0, y = r ? r.pos.y : 0, z = r ? r.pos.z : 0, near = r && GM.player && r.pos.distanceTo(GM.player.pos) < 60 && !GM.demo;
+  switch (type) {
+    case 'derail': burst(x, y + .4, z, 26, 9, .6, .3, [2.6, 1.4, .3], 12); if (P) { popup('DERAILED!', 'bad'); cam.shake = 1.3; PAD.rumble(1, .8, 450); } if (near) { AU.crash(); AU.noise(.5, { f: 3200, to: 900, vol: .18, q: 4 }); } break;
+    case 'wreck': if (a === 'lava') { burst(x, M.lavaY + .4, z, 46, 13, 1.2, .55, [2.8, 1, .12], 10, .9); if (near) AU.splash(); if (P) { popup('INTO THE LAVA!  +PENALTY', 'bad'); cam.flash = .7; } }
+      else if (a === 'crush') { burst(x, y + 1, z, 60, 14, .9, .5, [2.6, 1.3, .3], 10); if (near) { AU.crash(); AU.tone(50, .7, { to: 28, vol: .6 }); } if (P) { popup('CRUSHED!', 'bad'); cam.shake = 2; cam.flash = .6; PAD.rumble(1, 1, 700); } }
+      else { burst(x, y + .3, z, 18, 7, .5, .3, [2.4, 1.2, .3], 12); if (near) AU.land(1); if (P) cam.shake = Math.max(cam.shake, .9); } break;
+    case 'respawn': if (P) cam.init = false; break;
+    case 'jump': if (near) AU.jump(); if (P && a) popup('RAIL JUMP!', 'info'); break;
+    case 'land': if (near) { AU.land(a.hard || a.perfect ? .9 : .5); AU.noise(.08, { f: 2400, vol: .1, q: 3 }); } burst(x, y + .1, z, a.perfect ? 22 : 8, 6, .35, .22, a.perfect ? [1.2, 2.4, 1.6] : [2.4, 1.3, .3], 12);
+      if (P) { cam.shake = Math.max(cam.shake, .45); if (a.passed) popup('RAIL JUMP PASS!', 'combo'); if (a.perfect) { popup('PERFECT LANDING!  +BOOST', 'good'); AU.trick(2); } } break;
+    case 'switched': if (P) { popup('SWITCHED!', 'bad'); AU.tone(220, .25, { to: 140, type: 'square', vol: .14 }); } break;
+    case 'throw': if (near) { AU.tone(140, .12, { to: 90, type: 'square', vol: .2 }); AU.noise(.1, { f: 900, vol: .16 }); } if (P) popup('SWITCH THROWN — ' + a.lab[1 - a.forced], 'good'); break;
