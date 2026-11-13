@@ -408,3 +408,20 @@ MINE.ai = function (r, dt) {
       else if (it === 'grapple') c.use = !!ah && ah.prog - r.prog > 5;
       else if (it === 'surge') c.use = !brake && Math.abs(mineLPx(r.lane, r.u + 40, MQ2).k) < .006 && Math.abs(r.kNow) < .006;
       else if (it === 'oil') c.use = GM.racers.some(o => o !== r && o.lane === r.lane && o.prog < r.prog && r.prog - o.prog < 25) || A.useT < -10;
+      else if (it === 'spare') c.use = !!mineNextGap(r.lane, r.u, 60) || A.useT < -10;
+      else if (it === 'lock') c.use = !!mineAhead(r, 60, false);
+      else if (it === 'whistle') c.use = GM.racers.some(o => o !== r && o.mode !== 2 && o.pos.distanceTo(r.pos) < 26) || A.useT < -8;
+      if (c.use) A.useT = 2 + Math.random() * 4;
+    }
+  }
+  if (r.grapBy && r.grapBy.grap && r.grapBy.grap.t === r && Math.random() < dt * .25 * sk) c.brake = 1;
+  if (r.boost >= 2 && !brake && Math.abs(r.kNow) < .004 && Math.random() < dt * (.3 + D.aggr)) c.boostHit = true;
+  // stuck behind someone: try the rail jump
+  const blk = mineAhead(r, 5, true);
+  if (blk && !brake && r.v >= blk.v - 1) A.stuck += dt; else A.stuck = Math.max(0, A.stuck - dt * 2);
+  if (A.stuck > 1.1 + (1 - D.aggr) * 2.2 && A.rjCD <= 0 && r.stunT <= 0 && !g) {
+    let ok = true; for (let d = 0; d < 48; d += 6) { const P = mineLPx(r.lane, r.u + d, MQ2); if (Math.abs(P.k) > .0045 || P.lane !== r.lane) ok = false; }
+    if (mineNextGap(r.lane, r.u, 50)) ok = false; for (const J of M.junc) if (J.lane === r.lane && J.u - r.u > -5 && J.u - r.u < 55) ok = false;
+    if (ok) { A.side = Math.random() < .5 ? -1 : 1; A.err = (Math.random() - .5) * 2 * (1.3 - sk) * 1.5; c.jumpHit = true; c.lean = A.side; A.rjCD = 5 + Math.random() * 5; A.stuck = 0; }
+  } else if (!c.jumpHit) A.err = 0;
+  // side shoves at carts alongside on a parallel rail
