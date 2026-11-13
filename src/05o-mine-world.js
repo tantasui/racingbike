@@ -265,3 +265,17 @@ MINE.reset = function () {
   mComp.uniforms.uHeat.value = 0; mComp.uniforms.uLines.value = 0; $('hud').classList.remove('mine'); MINE.silence();
 };
 // ---------------------------------------------------------------- per-frame visuals
+function mineRaceVis() {
+  const M = MINE, V = MV; for (const d of V.decks) { for (const b of d.base) b.fall = 0; d.dirty = true; }
+  const b = $('hProg'); b.innerHTML = '<i class="fin"></i><i style="left:33.3%"></i><i style="left:66.6%"></i>';
+  GM.racers.forEach((r, i) => { const d = document.createElement('b'); d.style.background = d.style.color = RCSS[i]; if (i === 0) d.className = 'me'; b.appendChild(d); r.dot = d; });
+  const k = document.createElement('b'); k.className = 'loco'; b.appendChild(k); V.locoDot = k; V.clk = 0; V.whT = 5;
+  for (const r of GM.racers) mineCartVis(r, 0);
+}
+function mineFrameVis(dt) {
+  const M = MINE, V = MV, t = GM.time, pl = GM.demo ? (GM.order[0] || GM.player) : GM.player; if (!V.built) return;
+  for (const r of GM.racers) { r.onTrestle = r.mode === 0 ? (M.trestles.find(q => q.lane === r.lane && r.u > q.a && r.u < q.b) || { dmg: 0 }).dmg : 0; mineCartVis(r, dt); }
+  if (V.lava) V.lava.position.y = M.lavaY;
+  for (const g of V.gapMesh) g.me.visible = !mineGapOn(g.g);
+  // switch signals: red blinking = that branch is closed to you; green = open (brighter = where the switch rests)
+  for (const s of V.sig) { const J = s.J, lock = J.lockT > 0, bl = Math.sin(GM.t * 14) > 0; for (let k = 0; k < 2; k++) { const c = s.lamps[k].color; if (lock) { if (k === J.forced) c.setRGB(.4, 3, .7); else c.setRGB(bl ? 3.4 : .5, .15, .08); } else c.setRGB(.25, k === J.rest ? 2.2 : .7, k === J.rest ? .5 : .16); } }
