@@ -82,3 +82,17 @@ function mineCartMake(r) {
     r.wheelMat = C.wheels[0] ? std(C.wheels[0].m, { color: 0xb89a88, emissive: 0x000000 }) : null;
     for (const w of C.wheels) { const me = new THREE.Mesh(w.g, r.wheelMat); me.position.copy(w.c); me.frustumCulled = false; tilt.add(me); r.wheels.push(me); r.wheelR = w.r; }
   } else {
+    const bm = patch(new THREE.MeshLambertMaterial({ color: MPAINT[r.i] })); r.mats.push(bm); const b = new THREE.Mesh(new THREE.BoxGeometry(1.2, .8, 1.5), bm); b.position.y = .72; tilt.add(b);
+    r.wheelMat = patch(new THREE.MeshLambertMaterial({ color: 0x55443a })); r.mats.push(r.wheelMat); const wg = new THREE.CylinderGeometry(.19, .19, .08, 12); wg.rotateZ(PI / 2);
+    for (const [x, z] of [[-.6, -.4], [.6, -.4], [-.6, .4], [.6, .4]]) { const me = new THREE.Mesh(wg, r.wheelMat); me.position.set(x, .19, z); tilt.add(me); r.wheels.push(me); } r.wheelR = .19;
+  }
+  const top = A ? A.cart.topY : 1.12;
+  // front lantern on a short iron arm; the player's also carries a real light down the tunnel
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(.04, .34, .04), M(0x1c1c20)); arm.position.set(.42, top + .12, -.74); tilt.add(arm);
+  r.lampMat = new THREE.MeshBasicMaterial(); r.lampMat.color.setRGB(2.6, 1.5, .45); patch(r.lampMat); r.mats.push(r.lampMat);
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(.13, .17, .13), r.lampMat); lamp.position.set(.42, top + .34, -.74); tilt.add(lamp);
+  if (r.isP) { r.light = new THREE.PointLight(0xffb060, 1.5, 36, 1.4); r.light.position.set(0, top + .5, -1.6); g.add(r.light); }
+  if (A) {
+    const m = THREE_EX.SkeletonUtils.clone(A.rider.scene), s = .9;
+    const body = patch(new THREE.MeshLambertMaterial({ color: new THREE.Color(RCOL[r.i]).multiplyScalar(.5), emissive: new THREE.Color(RCOL[r.i]).multiplyScalar(.6) })), joints = patch(new THREE.MeshLambertMaterial({ color: 0x15171c })); r.mats.push(body, joints);
+    m.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.material = /Joint/i.test(o.name) ? joints : body; } });
