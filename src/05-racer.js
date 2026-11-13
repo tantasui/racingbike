@@ -238,7 +238,7 @@ class Racer {
     // light trail (per-ride colour)
     const hw = this.ride === 2 ? .5 : this.ride === 1 ? .32 : .16, bxp = TP0.x - fx * .7, bzp = TP0.z - fz * .7, ty = this.y + .14;
     this.trail.push(bxp - rx * hw, ty, bzp - rz * hw, bxp + rx * hw, ty, bzp + rz * hw, dt);
-    this.trail.mat.uniforms.uI.value = down ? 0 : clamp(this.v / 22, 0, 1.2) * (this.boostT > 0 ? 1.5 : .55);
+    this.trail.mat.uniforms.uI.value = down ? 0 : clamp(this.v / 22, 0, 1.2) * (this.boostT > 0 ? 1.5 : .55) * (course.mb ? .22 : 1);
     // headlight pool
     const hl = uHL.value[this.i]; ground(this.s + 7, this.d, G1);
     hl.set(TP0.x + fx * 7, (G1.void ? this.y : G1.y), TP0.z + fz * 7, down ? 0 : (this.isP ? 1 : .55));
@@ -250,6 +250,7 @@ class Racer {
       if (this.surf === 1 && Math.abs(this.a - this.beta) > .08 && Math.random() < dt * 40) spawnP(bxp, this.y + .1, bzp, (Math.random() - .5) * 4, 2, (Math.random() - .5) * 4, .4, .15, .8, 1.4, 1.6, 6);
     }
     if (this.boostT > 0 && !down) for (let n = 0; n < 2; n++) spawnP(bxp + (Math.random() - .5) * .4, this.y + .5 + Math.random() * .5, bzp + (Math.random() - .5) * .4, -fx * 6 + (Math.random() - .5) * 3, Math.random() * 2, -fz * 6 + (Math.random() - .5) * 3, .45, .32, tc[0] * 1.6 + .4, tc[1] * 1.6 + .2, tc[2] * 1.6, -1);
+    if (course.mb) MOBO.racerVis(this, dt);
     if (this.ride === 2 && !down && Math.random() < dt * 14) spawnP(TP0.x + fx * -.66 + rx * .2, this.y + 2.3, TP0.z + fz * -.66 + rz * .2, -fx * 2, 2.5, -fz * 2, .8, .5, .5, .3, .25, -1.5);
   }
 }
@@ -283,6 +284,7 @@ function aiCtl(r, dt) {
   const v = r.v, look = 10 + v * .55, sA = r.s + look, w = arrAt(T.wid, sA);
   if (r.fin) { c.acc = 0; c.brake = v > 1 ? 1 : 0; c.steer = clamp((-r.d / 20 - r.a) * 3, -1, 1); return c; }
   let tgt = clamp((kapAt(r.s + look * .6) + kapAt(sA + look * .5)) * 110, -.6, .6) * w + A.lane * (w / 10) + Math.sin(r.s * .013 + A.ph) * 1.2;
+  if (course.mb) tgt = MOBO.aiLane(r, sA, tgt, w);
   tgt = clamp(tgt, -w + 1.8, w - 1.8);
   // shortcuts
   ground(r.s, r.d, G0);
