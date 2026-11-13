@@ -66,6 +66,19 @@ class TrackBuilder {
     for (let i = 0; i < N; i++) { let a = 0, n = 0; for (let k = -30; k <= 30; k += 3) { a += T.cy[clamp(i + k, 0, N - 1)]; n++; } T.cyS[i] = a / n; }
     for (let i = 8; i < N - 8; i++) if (T.cy[i] - (T.cy[i - 8] + T.cy[i + 8]) / 2 > .55) T.crest[i] = 1;
     T.fin = T.len - 100;
+    // side ramps (kickers) and speed-boost pads, placed on straights clear of other features
+    T.kicks = []; T.pads = []; const kr = RNG(1000 + N); let alt = 0;
+    const clear = (s, back, fwd, kmax, br) => {
+      for (let q = -back; q <= fwd; q += 6) { const j = I(s + q); if (Math.abs(T.kap[j]) > kmax || T.gap[j] || T.rampF[j] || (!br && T.bw[j] > 0)) return false; }
+      for (const l of T.lips) if (l > s - back - 12 && l < s + fwd + 12) return false;
+      for (const p of T.pools.concat(T.geysers)) if (Math.abs(p.s - s) < 30) return false;
+      return true;
+    };
+    for (let s = 200; s < T.fin - 160; s += 45 + kr() * 40) {
+      const w = T.wid[I(s)], d = (kr() * 2 - 1) * (w - 4.2);
+      if (alt % 2 && clear(s, 12, 80, .006)) { T.kicks.push({ s0: s, len: 9, H: 1.7 + kr() * .7, d, hw: 2.9 }); alt++; }
+      else if (!(alt % 2) && clear(s, 8, 30, .022, true)) { T.pads.push({ s: s + 4, d }); alt++; }
+    }
     return T;
   }
 }
