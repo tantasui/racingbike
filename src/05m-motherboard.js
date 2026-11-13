@@ -173,3 +173,23 @@ void main(){
     float ed=smoothstep(1.25,.95,vInfo.y)*step(reg,.5); col=mix(col,vec3(.8,.62,.3),ed); em+=ed*.06; ec+=vec3(1.,.7,.3)*ed*.06;
     // ---- ramps (gold chevrons) and speed pads (green chevrons)
     if(flag>.5&&flag<1.5){ float ch=step(.5,fract(s*.33+abs(d)*.16)); col=mix(col,vec3(1.,.75,.25),.55+.3*ch); em+=.12+.25*ch; ec+=vec3(1.,.7,.25)*(.12+.25*ch); }
+    if(flag>1.5){ float ch=step(.5,fract(s*.45-abs(d)*.3-uTime*2.)); col=mix(col,vec3(.2,1.,.5),.6); em+=.15+.4*ch; ec+=vec3(.3,1.2,.6)*(.15+.4*ch); }
+    // ---- vias: real holes (entry) and capped outlets (exit)
+    for(int i=0;i<4;i++){ vec4 v=uVia[i]; if(v.z<=0.) continue; float vd=length(vec2(s-v.x,d-v.y));
+      if(v.w<.5&&vd<v.z) discard;
+      if(v.w>.5&&vd<v.z){ col=vec3(.02,.03,.03)+vec3(.5,.4,.2)*step(.5,fract((s-v.x)*1.4))*.4; }
+      float ring=smoothstep(.75,.2,abs(vd-v.z-.45)); col=mix(col,vec3(.9,.7,.3),ring); float vg=ring*(.35+.25*sin(uTime*6.-vd*2.)); em+=vg; ec+=(v.w<.5?vec3(.3,1.2,1.3):vec3(1.,.7,.3))*vg; }
+    // ---- capacitor launch pads: ring fills with charge
+    for(int i=0;i<8;i++){ vec4 c=uCap[i]; if(c.z<=0.) continue; vec2 o=vec2(s-c.x,d-c.y); float cd=length(o); if(cd>c.z+1.5) continue;
+      float a=atan(o.y,o.x)/6.2832+.5, fill=step(a,c.w); float ring=smoothstep(.55,.25,abs(cd-c.z));
+      vec3 cc=mix(vec3(1.,.15,.1),vec3(.3,1.2,1.4),step(.999,c.w));
+      col=mix(col,vec3(.72,.75,.78),smoothstep(c.z-.2,c.z-.5,cd));                                          // aluminium can top
+      float kv=smoothstep(.12,.0,min(abs(o.x),abs(o.y)))*smoothstep(c.z-.4,c.z-.8,cd); col=mix(col,vec3(.35,.38,.4),kv); // K-shaped vent
+      float g=ring*(fill*(.55+.3*step(.999,c.w)*sin(uTime*10.))+.05); em+=g; ec+=cc*g;
+      col=mix(col,cc*.6,ring*fill); }
+    // ---- hot zone (power section shortcut): branch traces glow red-hot
+    if(reg>.5&&s>uHot.x&&s<uHot.y){ float ht=smoothstep(1.1,.6,abs(d-uHot.z))*(.75+.25*sin(uTime*9.+s*.4)); col=mix(col,vec3(1.,.25,.05),.35+ht*.5); em+=.12+ht*.6; ec+=vec3(1.,.3,.06)*(.12+ht*.6); }
+    // ---- gold edge-connector fingers at the finish
+    if(s>uFin-42.&&s<uFin+20.){ float gf=step(.32,fract(d/1.7))*smoothstep(uFin-42.,uFin-38.,s); col=mix(col,vec3(1.,.78,.32),gf); em+=gf*.3; ec+=vec3(1.,.75,.3)*gf*.3; }
+  } else if(reg<2.5||reg>4.5){
+    // board edge in cross-section: copper layers between fibreglass, falling away into a teal abyss
