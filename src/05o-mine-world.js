@@ -125,3 +125,17 @@ function mineCartVis(r, dt) {
   }
   // sparks: hard braking, tipping on two wheels, scraping
   if (r.mode === 0 && r.v > 4 && (r.heat > .35 || Math.abs(r.tip) > .45) && Math.random() < dt * 60) { const sd = Math.abs(r.tip) > .45 ? Math.sign(r.tip) : (Math.random() < .5 ? -1 : 1), i = r.ci; spawnP(r.pos.x + M.rx[i] * sd * .6, r.pos.y + .05, r.pos.z + M.rz[i] * sd * .6, -r.fw.x * r.v * .3 + (Math.random() - .5) * 3, 1 + Math.random() * 3, -r.fw.z * r.v * .3 + (Math.random() - .5) * 3, .25 + Math.random() * .3, .12, 2.6, 1.3, .3, 14); }
+  if (r.surgeT > 0 || r.boostT > 0) for (let k = 0; k < 2; k++) spawnP(r.pos.x - r.fw.x * .8, r.pos.y + .7 + Math.random() * .5, r.pos.z - r.fw.z * .8, -r.fw.x * 6 + (Math.random() - .5) * 2, 1 + Math.random() * 2, -r.fw.z * 6 + (Math.random() - .5) * 2, .4, r.surgeT > 0 ? .5 : .28, 2.4, r.surgeT > 0 ? .7 : 1.2, .12, -2);
+  if (r.draft > .8 && Math.random() < dt * 30) spawnP(r.pos.x + (Math.random() - .5), r.pos.y + .6 + Math.random(), r.pos.z + (Math.random() - .5), r.fw.x * r.v * .5, 0, r.fw.z * r.v * .5, .25, .1, .7, 1.2, 1.6, 0);
+}
+
+// ---------------------------------------------------------------- world
+function mineRailStrip(li, a, b, P, I, G) {
+  const l = MINE.lanes[li], w = .045, hh = .13; let prev = -1;
+  for (let u = a; u < b + .999; u += 1) {
+    const q = mineLP(l, Math.min(u, b), MQ), h = Math.hypot(q.tx, q.tz) || 1, rx = -q.tz / h, rz = q.tx / h, cur = P.length / 3;
+    for (const sd of [-1, 1]) { const x = q.x + rx * sd * G, z = q.z + rz * sd * G; P.push(x - rx * w, q.y, z - rz * w, x + rx * w, q.y, z + rz * w, x - rx * w * 1.6, q.y - hh, z - rz * w * 1.6, x + rx * w * 1.6, q.y - hh, z + rz * w * 1.6); }
+    if (prev >= 0) for (let r = 0; r < 2; r++) { const p0 = prev + r * 4, p1 = cur + r * 4; I.push(p0, p1, p0 + 1, p0 + 1, p1, p1 + 1, p0 + 2, p1 + 2, p0, p0, p1 + 2, p1, p0 + 1, p1 + 1, p0 + 3, p0 + 3, p1 + 1, p1 + 3); }
+    prev = cur;
+  }
+}
