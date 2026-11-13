@@ -390,7 +390,7 @@ function buildScenery() {
     inst(new THREE.IcosahedronGeometry(1, 0), MB(S.lantern[0], S.lantern[1], S.lantern[2], .3), lit);
   }
   // --- trackside lanterns
-  { const poles = [], bulbs = [];
+  if (!course.mb) { const poles = [], bulbs = [];
     for (let i = 6; i < T.N - 4; i += 12) {
       const s = i * DS, sd = (i / 12) % 2 ? 1 : -1, side = sd > 0 ? T.sR[i] : T.sL[i]; if (T.gap[i] || T.gap[i + 2] || T.gap[i - 2]) continue;
       let d = sd * (T.wid[i] + (side === 2 ? .2 : 1.3)); if (T.bw[i] > 0 && Math.sign(T.bo[i]) === sd) continue;
@@ -406,6 +406,10 @@ function buildScenery() {
     for (let i = 1; i < T.cps.length; i++) gate(T.cps[i], cy, 8);
     gate(T.fin, fin, 10); gate(T.fin + 1.2, dark, 10.6); gate(26, fin, 9);
     for (const sh of T.shorts) if (!sh.hidden) { const s = sh.s0 + (sh.s1 - sh.s0) * .1, w = arrAt(T.wid, s), p = tpos(s, sh.side * (w + 2.4), {}); ground(s, sh.side * w, GV); sign.push({ x: p.x, y: GV.h + 3.4, z: p.z, sx: 1.1, sy: 2.4, sz: 1.1, rx: -PI / 2, ry: -p.th - sh.side * .5 }); dark.push({ x: p.x, y: GV.h + 1.2, z: p.z, sx: .2, sy: 3.4, sz: .2 }); }
+    const arrows = [], posts = [];
+    for (const p of T.pads) for (let q = -1; q <= 1; q++) { const a = tpos(p.s + q * 2.6, p.d, {}); ground(p.s + q * 2.6, p.d, GV); arrows.push({ x: a.x, y: GV.y + 1.5 + (q + 1) * .5, z: a.z, sx: 1.5, sy: 1.6, sz: .5, rx: -PI / 2, ry: -a.th }); }
+    for (const k of T.kicks) for (const sd of [-1, 1]) { const a = tpos(k.s0 + k.len, k.d + sd * (k.hw + .5), {}); ground(k.s0 + k.len - .5, k.d, GV); posts.push({ x: a.x, y: GV.y + .6, z: a.z, sx: .22, sy: 2.4, sz: .22 }); }
+    inst(new THREE.ConeGeometry(.6, 1, 3), MB(.5, 2.6, 1.1), arrows); inst(new THREE.BoxGeometry(1, 1, 1), MB(2.4, 1.5, .4), posts);
     inst(new THREE.BoxGeometry(1, 1, 1), MB(.4, 1.9, 2.2), cy); inst(new THREE.BoxGeometry(1, 1, 1), MB(2.4, 2.2, 2.0), fin);
     inst(new THREE.BoxGeometry(1, 1, 1), M(0x1a1626), dark); inst(new THREE.ConeGeometry(.6, 1, 4), MB(2.4, .5, 1.8), sign); }
 }
