@@ -350,3 +350,17 @@ function mineAudio(dt, p) {
   const M = MINE, V = MV, c = AU.ctx; if (!c) return; const K = M.loco, d = p.prog - K.prog, prox = clamp(1 - d / 230, 0, 1), on = p.mode === 0;
   AU.frame(p.mode === 2 ? 0 : p.v, 1, !on, p.boostT > 0 || p.surgeT > 0, prox * prox * .95);
   if (!V.scr) { const s = c.createBufferSource(); s.buffer = AU.nb; s.loop = true; const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2900; f.Q.value = 7; const g = c.createGain(); g.gain.value = 0; s.connect(f); f.connect(g); g.connect(AU.master); s.start(); V.scr = { g, f }; }
+  const sq = on ? clamp((Math.abs(p.aLat) - 5) / 9, 0, 1) * .16 + p.heat * .14 * Math.min(1, p.v / 8) : 0; V.scr.g.gain.setTargetAtTime(AU.muted ? 0 : sq, c.currentTime, .06); V.scr.f.frequency.setTargetAtTime(2400 + p.v * 40, c.currentTime, .1);
+  if (on && p.v > 1.5) { V.clk += p.v * dt; if (V.clk > 4.4) { V.clk = 0; const k = clamp(p.v / 26, .25, 1); for (const dl of [0, Math.min(.2, 1.5 / p.v)]) { AU.noise(.035, { f: 2300, vol: .13 * k, q: 2.5, delay: dl }); AU.tone(150, .05, { to: 85, vol: .14 * k, delay: dl }); } } }
+  if (prox > .05 && K.v > 2) { V.chf += K.v * dt; if (V.chf > 2.6) { V.chf = 0; AU.noise(.14, { f: 260, to: 110, vol: .55 * prox * prox, type: 'lowpass' }); } }
+  V.whT -= dt; if (V.whT <= 0 && GM.time > 4) { V.whT = 5 + Math.random() * 5; if (prox > .12) { const v = .26 * prox; for (const f of [311, 370, 466]) AU.tone(f, 1.3, { type: 'triangle', vol: v, att: .1 }); AU.noise(1.2, { f: 1500, vol: .05 * prox, q: 1 }); } }
+  V.bubT -= dt; if (V.bubT <= 0) { V.bubT = .25 + Math.random() * .7; if (M.env[p.ci]) AU.tone(55 + Math.random() * 60, .28, { to: 36, vol: .05 }); }
+  AU.music(course.root, course.tempo, clamp(p.v / 34, 0, 1));
+}
+MINE.silence = function () { if (MV.scr && AU.ctx) MV.scr.g.gain.setTargetAtTime(0, AU.ctx.currentTime, .05); };
+
+// ---------------------------------------------------------------- camera
+MINE.camera = function (dt) {
+  const M = MINE, p = GM.demo ? (GM.order[0] || GM.player) : GM.player, sp = clamp(p.v / 38, 0, 1.3), boost = p.boostT > 0 || p.surgeT > 0 ? 1 : 0;
+  const dist = (GM.demo ? 8.5 : 5.4) + sp * 2.2 + boost * .7, h = 2.45 + sp * .35; let bx, by, bz, lx, ly, lz;
+  if (p.mode === 0) { const B = mineLPx(p.lane, p.u - dist, MQ2); bx = B.x; by = B.y; bz = B.z; const F = mineLPx(p.lane, p.u + 11, MQ3); lx = F.x; ly = F.y; lz = F.z; }
