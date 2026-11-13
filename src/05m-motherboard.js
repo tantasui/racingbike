@@ -680,3 +680,22 @@ MOBO.audio = function (p) {
   N.humG.gain.setTargetAtTime(m * (.05 + (MOBO.pow >= 0 ? .08 : 0)), t, .2);
   N.wh.frequency.setTargetAtTime(220 + p.v * 38 + (boost ? 600 : 0), t, .05); N.whF.frequency.setTargetAtTime(500 + p.v * 70, t, .08);
   N.whG.gain.setTargetAtTime(m * (p.state || p.air ? .004 : .008 + k * k * .03), t, .08);
+  N.windG.gain.setTargetAtTime(m * k * k * .5, t, .15); if (MOBO.snd.buf.wind_loop) AU.windG.gain.setTargetAtTime(m * k * .05, t, .1);
+  N.musF.frequency.setTargetAtTime(boost || MOBO.pow >= 0 ? 16000 : 900 + k * 500, t, boost ? .05 : .4);
+  if (!p.state && !p.air && p.v > 8 && Math.random() < .02 * k) AU.noise(.04, { f: 3000 + Math.random() * 3000, vol: .03, type: 'highpass' }); // crackle
+};
+// ---------------------------------------------------------------- PHASE 5: HUD (seven-segment speedo, battery boost meter)
+const SEG = { 0: 'abcdef', 1: 'bc', 2: 'abged', 3: 'abgcd', 4: 'fgbc', 5: 'afgcd', 6: 'afgedc', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg', ' ': '' };
+const SEG_P = { a: '6,2 34,2 30,8 10,8', b: '36,4 36,33 31,30 31,10', c: '36,37 36,66 31,60 31,40', d: '6,68 34,68 30,62 10,62', e: '4,37 4,66 9,60 9,40', f: '4,4 4,33 9,30 9,10', g: '7,35 12,31 28,31 33,35 28,39 12,39' };
+MOBO.initHud = function () {
+  if ($('mbSpeed').childElementCount) return;
+  $('mbSpeed').innerHTML = [0, 1, 2].map(i => `<svg viewBox="0 0 40 70" class="dg" id="dg${i}">${Object.keys(SEG_P).map(k => `<polygon points="${SEG_P[k]}" data-s="${k}"/>`).join('')}</svg>`).join('') + '<span>MPH</span>';
+  $('mbBatt').innerHTML = '<div class="cells">' + '<i></i>'.repeat(5) + '</div><b></b><small>CHARGE</small>';
+};
+MOBO.hud = function (p) {
+  MOBO.initHud();
+  const mph = String(Math.min(999, Math.round(p.v * 2.237))).padStart(3, ' ');
+  if (hc.mbS !== mph) { hc.mbS = mph; for (let i = 0; i < 3; i++) { const on = SEG[mph[i] === ' ' && i < 2 ? ' ' : mph[i]] || ''; for (const pg of $('dg' + i).children) pg.classList.toggle('on', on.includes(pg.dataset.s)); } }
+  const cells = $('mbBatt').firstChild.children; for (let i = 0; i < 5; i++) { const f = clamp(p.boost - i, 0, 1), k = 'mbB' + i; if (hc[k] !== f) { hc[k] = f; cells[i].style.setProperty('--f', f); } }
+  $('mbBatt').classList.toggle('full', p.boost >= 5); $('mbBatt').classList.toggle('act', p.boostT > 0);
+};
