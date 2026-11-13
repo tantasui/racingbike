@@ -96,3 +96,18 @@ function mineCartMake(r) {
     const m = THREE_EX.SkeletonUtils.clone(A.rider.scene), s = .9;
     const body = patch(new THREE.MeshLambertMaterial({ color: new THREE.Color(RCOL[r.i]).multiplyScalar(.5), emissive: new THREE.Color(RCOL[r.i]).multiplyScalar(.6) })), joints = patch(new THREE.MeshLambertMaterial({ color: 0x15171c })); r.mats.push(body, joints);
     m.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.material = /Joint/i.test(o.name) ? joints : body; } });
+    const hold = r.riderG = new THREE.Group(); m.scale.setScalar(s); m.rotation.y = PI; m.position.set(0, -A.hipY * s, A.hipZ * s); hold.add(m); hold.position.set(0, A.cart.floorY + .56, .1); tilt.add(hold);
+    r.mixer = new THREE.AnimationMixer(m); r.act = {}; for (const c of A.rider.animations) { const a = r.mixer.clipAction(c); r.act[c.name] = a; if (c.name !== 'riding' && c.name !== 'idle') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; } }
+    r.act.riding.play(); r.clip = 'riding';
+  }
+  r.tum = 0; r.ghostOn = false;
+}
+function mineCartKill(r) { if (!r.g) return; scene.remove(r.g); for (const m of r.mats) m.dispose(); if (r.paintTex) r.paintTex.dispose(); r.g = null; }
+function mineClip(r, name, fade = .1) { if (!r.act || r.clip === name) return; const a = r.act[name], b = r.act[r.clip]; if (!a) return; a.reset(); a.setEffectiveWeight(1); a.play(); if (b) b.crossFadeTo(a, fade, false); r.clip = name; }
+function mineCartVis(r, dt) {
+  const M = MINE, g = r.g; if (!g) return;
+  g.position.copy(r.pos); mineOrient(g, r.fw);
+  const down = r.mode === 2 || r.tumble;
+  if (down) { r.tum += r.spin * dt * (r.mode === 2 && r.wk !== 'lava' ? .25 : 1); r.tiltG.rotation.set(r.tum * .6, 0, r.tum); r.tiltG.position.y = .5; }
+  else {
+    const rock = Math.sin(r.wheel * 1.35) * .018 * Math.min(1, r.v / 9) + Math.sin(GM.t * 31 + r.i) * (r.onTrestle || 0) * .06 * (r.mode === 0 ? 1 : 0);
