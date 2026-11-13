@@ -153,3 +153,17 @@ MINE.build = function () {
       fragmentShader: NOISE_GLSL + FOG_GLSL + `uniform float uTime; varying vec3 vW;
 void main(){ if(vBZ>uBD.z||vBA>3.1416)discard;
   vec2 p=vW.xz*.011; float f1=fb(p+vec2(uTime*.012,0.)); float f2=fb(p*2.4-vec2(0.,uTime*.02)+f1*1.6);
+  float crack=1.-abs(f2*2.-1.); float glow=smoothstep(.5,.93,crack); float hot=smoothstep(.42,.75,f1);
+  vec3 col=mix(vec3(.06,.014,.004),vec3(2.6,.8,.1),glow*(.3+.7*hot)); col+=vec3(.55,.12,.02)*hot*(.6+.25*sin(uTime*1.3+f1*11.));
+  col+=vec3(1.4,.9,.3)*smoothstep(.93,1.,crack)*hot;
+  col=mix(col,uFogC,fogF()*.5); gl_FragColor=vec4(col,1.); }`
+    })
+  };
+  const T = V.mat;
+  // --- rails: one merged mesh, plus a separate piece for every gap so it can appear / vanish (missing rail, spare rail, collapsed trestle)
+  { const P = [], I = []; V.gapMesh = [];
+    for (const l of M.lanes) { let cur = l.a; const gs = l.gaps.slice().sort((a, b) => a.a - b.a);
+      for (const g of gs) { mineRailStrip(l.id, cur, g.a, P, I, G); const p2 = [], i2 = []; mineRailStrip(l.id, g.a, g.b, p2, i2, G); const me = addMesh(mineGeo(p2, i2), T.rail); V.gapMesh.push({ g, me }); cur = g.b; }
+      mineRailStrip(l.id, cur, l.b, P, I, G); }
+    addMesh(mineGeo(P, I), T.rail); }
+  // --- sleepers (the collapsing trestles carry their own, which can fall)
