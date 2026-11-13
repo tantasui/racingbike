@@ -212,3 +212,23 @@ void main(){
     float bt=h<.5?smoothstep(.08,.03,abs(f.y-.5)):smoothstep(.08,.03,abs(f.x-.5)); em=bt*.3; ec=vec3(1.,.25,.75)*bt*.3;
   }
   // gloss + light
+  vec3 N=normalize(cross(dFdx(vW),dFdy(vW))); if(N.y<0.) N=-N; if(under) N=-N;
+  vec3 V=normalize(uBC-vW), H=normalize(uSun+V);
+  float dif=.32+.8*max(dot(N,uSun),0.), spec=pow(max(dot(N,H),0.),70.)*.55+pow(1.-max(dot(N,V),0.),5.)*.12;
+  float hl=0.; for(int i=0;i<6;i++){ vec3 q=vW-uHL[i].xyz; hl+=uHL[i].w*exp(-dot(q,q)*.03); }
+  vec3 c=col*dif+vec3(.75,.95,1.)*spec*(reg<1.5?1.:.3)+(col*.6+uHLC*.06)*min(hl,1.4);
+  float bk=uBlack.w*exp(-length(vW-uBlack.xyz)/45.); ec*=1.-clamp(bk,0.,.95);
+  c+=ec;
+  c=mix(c,uFogC,fogF()*(1.-.35*clamp(em,0.,1.)));
+  gl_FragColor=vec4(c,1.);
+}`;
+const PCB_VS = BEND_GLSL + `attribute vec2 aSD; attribute vec4 aInfo; attribute vec3 aLane; varying vec2 vSD; varying vec4 vInfo; varying vec3 vLane,vW; varying float vFD;
+void main(){ vec4 wp=modelMatrix*vec4(position,1.); vW=wp.xyz; vec4 mv=viewMatrix*vec4(bendW(wp.xyz),1.); vFD=-mv.z; gl_Position=projectionMatrix*mv; vSD=aSD; vInfo=aInfo; vLane=aLane; }`;
+MOBO.U = {
+  uTI: { value: new THREE.Vector3(1, 1, 1) }, uPh: { value: new THREE.Vector3(0, 90, 170) }, uLW: { value: new THREE.Vector3(2.3, 1.9, 2.1) }, uPS: { value: 78 }, uPL: { value: 250 }, uPow: { value: 0 }, uFin: { value: 0 },
+  uSun: { value: new THREE.Vector3(-.45, .75, -.5).normalize() }, uVia: { value: [0, 1, 2, 3].map(() => new THREE.Vector4()) }, uCap: { value: [0, 1, 2, 3, 4, 5, 6, 7].map(() => new THREE.Vector4()) },
+  uBlack: { value: new THREE.Vector4() }, uZB: { value: [0, 0, 0, 0, 0, 0, 0] }, uHot: { value: new THREE.Vector4(-1, -1, 0, 0) }
+};
+let pcbMat = null;
+MOBO.buildTerrain = function () {
+  moboSetupTrack();
