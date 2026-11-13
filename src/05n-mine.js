@@ -392,3 +392,19 @@ MINE.ai = function (r, dt) {
   if (Math.abs(r.aLat) > 2.5) c.lean = Math.sign(r.kNow);
   // gaps: hop them — or, on the upper line, sometimes roll off on purpose to drop to the rail below
   const g = mineNextGap(r.lane, r.u, 40);
+  if (g) { if (A.gapId !== g) { A.gapId = g; A.drop = g.drop && Math.random() < .4; } const dist = g.a - r.u, len = g.b - g.a; if (!A.drop) { c.brake = 0; c.acc = 1; if (dist < Math.min(6, Math.max(.7, r.v * .93 - len - 1.4))) c.jumpHit = true; } }
+  // duck beams and buckets, hop fallen rocks
+  for (const b of M.beamDef) if (b.lane === r.lane && M.lapLead >= b.lap) { const d = b.u - r.u; if (d > -1 && d < r.v * .45 + 2) c.duck = true; }
+  for (const b of M.bucketDef) if (b.lane === r.lane) { const d = b.u - r.u; if (d > -1.5 && d < r.v * .4 + 2 && Math.random() < sk) c.duck = true; }
+  for (const k of M.rockDef) if (k.lane === r.lane) { const d = k.u - r.u, s = M.rockState(k); if (s.s >= 1 && d > 0 && d < r.v * 1.1 + 4) { if (Math.abs(r.kNow) < .01 && Math.abs(mineLPx(r.lane, r.u + 12, MQ2).k) < .01) { if (s.s >= 2 && d < r.v * .3 + 1 && d > r.v * .15) c.jumpHit = true; } else if (r.v > 9) { c.acc = 0; c.brake = 1; } } }
+  // switches: decide once per approach
+  for (const J of M.junc) if (J.lane === r.lane) { const d = J.u - r.u; if (d > 0 && d < 70) { if (A.plan[J.id] == null) { const risky = J.star[0] ? 0 : J.star[1] ? 1 : -1, wantRisk = Math.random() < (r.item ? .25 : .4 + .35 * D.aggr); A.plan[J.id] = risky < 0 ? (Math.random() < .5 ? 0 : 1) : wantRisk ? risky : 1 - risky; } c.choice = A.plan[J.id]; if (r.item === 'ghost' && J.lockT > 0 && J.forced !== c.choice && d < 30) c.use = true; } }
+  // power-ups
+  if (r.item) {
+    A.useT -= dt; const it = r.item, ah = mineAhead(r, 45, true);
+    if (A.useT <= 0) {
+      if (it === 'dynamite') c.use = !!ah || A.useT < -9;
+      else if (it === 'ghost') c.use = (ah && ah.prog - r.prog < 6) || A.useT < -8;
+      else if (it === 'grapple') c.use = !!ah && ah.prog - r.prog > 5;
+      else if (it === 'surge') c.use = !brake && Math.abs(mineLPx(r.lane, r.u + 40, MQ2).k) < .006 && Math.abs(r.kNow) < .006;
+      else if (it === 'oil') c.use = GM.racers.some(o => o !== r && o.lane === r.lane && o.prog < r.prog && r.prog - o.prog < 25) || A.useT < -10;
