@@ -68,3 +68,17 @@ function minePaintTex(src, col, seed) {
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
     const o = (j * w + i) * 4, r = p[o] / 255, g = p[o + 1] / 255, b = p[o + 2] / 255, lum = r * .3 + g * .59 + b * .11;
     const n = vnoise(i * .045 + seed * 13, j * .09) * .6 + vnoise(i * .16, j * .3 + seed * 7) * .4, wear = clamp((n - .56) * 9, 0, 1), grain = clamp((.2 - lum) * 9, 0, 1), k = 1 - Math.max(wear, grain), sh = .38 + lum * 1.25;
+    p[o] = 255 * clamp(lerp(r * (1 + wear * .25), cr * sh, k * .88), 0, 1); p[o + 1] = 255 * clamp(lerp(g * (1 - wear * .1), cg * sh, k * .88), 0, 1); p[o + 2] = 255 * clamp(lerp(b * (1 - wear * .2), cb * sh, k * .88), 0, 1);
+  }
+  x.putImageData(d, 0, 0); const t = new THREE.CanvasTexture(cv); t.flipY = src.flipY; t.encoding = THREE.sRGBEncoding; t.wrapS = src.wrapS; t.wrapT = src.wrapT; t.anisotropy = 4; return t;
+}
+const MPAINT = [0xe0a516, 0xc22a2a, 0x2f9a4e, 0x2a62c4, 0xd9d2c0, 0x8a44b8];
+function mineCartMake(r) {
+  const A = MINE.A, g = r.g = new THREE.Group(), tilt = r.tiltG = new THREE.Group(); g.add(tilt); scene.add(g); r.mats = []; r.wheels = [];
+  const std = (src, o) => { const m = patch(new THREE.MeshStandardMaterial(Object.assign({ map: src.map, roughnessMap: src.roughnessMap, normalMap: src.normalMap, roughness: 1, metalness: .15, side: THREE.DoubleSide }, o))); r.mats.push(m); return m; };
+  if (A) {
+    const C = A.cart;
+    for (const p of C.body) { let m; if (p.wood) { r.paintTex = minePaintTex(p.m.map, MPAINT[r.i], r.i + 1); m = std(p.m, { map: r.paintTex, emissiveMap: r.paintTex }); m.emissive.setRGB(.55, .55, .55); m.color.setRGB(.6, .6, .6); } else m = std(p.m, { color: 0xc9a48c }); const me = new THREE.Mesh(p.g, m); me.frustumCulled = false; tilt.add(me); }
+    r.wheelMat = C.wheels[0] ? std(C.wheels[0].m, { color: 0xb89a88, emissive: 0x000000 }) : null;
+    for (const w of C.wheels) { const me = new THREE.Mesh(w.g, r.wheelMat); me.position.copy(w.c); me.frustumCulled = false; tilt.add(me); r.wheels.push(me); r.wheelR = w.r; }
+  } else {
