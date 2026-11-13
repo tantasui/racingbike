@@ -582,3 +582,23 @@ const riderMats = {};
 MOBO.dressRacer = function (r) {
   const A = MOBO.A; if (!A) return;
   // rider.glb: one skinned character, clips idle / riding / punch / kick / crash
+  for (const ch of r.rider.g.children) ch.visible = false;
+  const m = THREE_EX.SkeletonUtils.clone(A.rider.scene);
+  const body = riderMats[r.i] || (riderMats[r.i] = patch(new THREE.MeshLambertMaterial({ color: RCOL[r.i] })));
+  const joints = riderMats.j || (riderMats.j = patch(new THREE.MeshLambertMaterial({ color: 0x15171c, emissive: 0x0a2a2a })));
+  m.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.material = /Joint/i.test(o.name) ? joints : body; } });
+  m.rotation.y = PI; m.position.set(0, -A.hipY + .05, -.05); r.rider.g.add(m);
+  const mixer = new THREE.AnimationMixer(m), act = {};
+  for (const c of A.rider.animations) { const a = mixer.clipAction(c); act[c.name] = a; if (c.name !== 'riding' && c.name !== 'idle') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; } }
+  act.riding.play();
+  let spine = null, armL = null, armR = null; m.traverse(o => { if (o.isBone) { if (/Spine1$/.test(o.name)) spine = o; if (/LeftArm$/.test(o.name)) armL = o; if (/RightArm$/.test(o.name)) armR = o; } });
+  r.mb = { m, mixer, act, cur: 'riding', spine, armL, armR, susp: 0, suspV: 0, lastGy: null, turn: 0 };
+  // ride: the BMX model replaces the primitive mountain bike
+  if (r.ride === 0 && A.bmx) {
+    for (const ch of r.mount.g.children) ch.visible = false;
+    const b = A.bmx.scene.clone(); const box = new THREE.Box3().setFromObject(b), sz = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    const long = Math.max(sz.x, sz.z), k = 1.75 / long; b.scale.setScalar(k); b.position.set(-c.x * k, -box.min.y * k, -c.z * k);
+    if (sz.x > sz.z) b.rotation.y = PI / 2;
+    b.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.material = moboMat(o.material); } });
+    const holder = new THREE.Group(); holder.add(b); r.mount.g.add(holder); r.mb.bike = holder;
+  }
