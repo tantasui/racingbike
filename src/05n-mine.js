@@ -129,3 +129,20 @@ class MineCart {
     this.airT = 0; this.rj = false; this.tumble = false; this.wt = 0; this.wk = ''; this.heat = 0; this.aLat = 0; this.lastBy = null; this.lastByT = 0; this.wheel = 0; this.rock = 0; this.spin = 0; this.sparkT = 0;
     this.fw = new THREE.Vector3(0, 0, -1); this.kNow = 0;
     if (window.mineCartMake) mineCartMake(this);
+  }
+  dispose() { if (window.mineCartKill) mineCartKill(this); }
+  place(lane, u) { this.lane = lane; this.u = u; this.prog = this.lap * MINE.L + u; this.mode = 0; this.v = 0; this.tip = 0; mineLP(MINE.lanes[lane], u, MQ); this.pos.set(MQ.x, MQ.y, MQ.z); this.fw.set(MQ.tx, MQ.ty, MQ.tz); this.ox = MQ.ox; this.ci = Math.round(u) % MINE.L; }
+  hurt(d, by) { if (this.invT > 0 || this.mode === 2 || this.fin) return; this.health -= d; if (by) { this.lastBy = by; this.lastByT = 2.5; } if (this.health <= 0) this.derail(Math.random() < .5 ? -1 : 1, 'hp'); }
+  // leave the rail under control (hop / rail jump / rolling off a gap)
+  launch(vy, lean, kick) {
+    const P = mineLP(MINE.lanes[this.lane], this.u, MQ), i = this.ci = Math.round(this.u) % MINE.L, v = this.v + kick;
+    this.pos.set(P.x, P.y, P.z); this.vel.set(P.tx * v + MINE.rx[i] * lean * 3.4, P.ty * v + vy, P.tz * v + MINE.rz[i] * lean * 3.4);
+    this.mode = 1; this.airT = 0; this.tumble = false; this.rj = kick > 0; this.ai.aim = this.lane; this.tip = 0;
+    if (this.rj) { this.rjAhead = GM.racers.filter(o => o !== this && o.prog > this.prog && o.prog - this.prog < 14); }
+  }
+  // thrown off: tumbling, cannot re-rail
+  derail(dir, why, up = 3.2) {
+    if (this.mode === 2 || this.invT > 0) return;
+    if (this.mode === 0) { const P = mineLP(MINE.lanes[this.lane], this.u, MQ), i = this.ci = Math.round(this.u) % MINE.L; this.pos.set(P.x, P.y + .1, P.z); this.vel.set(P.tx * this.v * .8 + MINE.rx[i] * dir * 4.5, up, P.tz * this.v * .8 + MINE.rz[i] * dir * 4.5); }
+    else this.vel.y = Math.max(this.vel.y, up);
+    this.mode = 1; this.tumble = true; this.airT = 0; this.spin = dir * (5 + Math.random() * 4); this.grap = null; this.surgeT = 0;
