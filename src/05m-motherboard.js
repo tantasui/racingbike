@@ -387,3 +387,23 @@ MOBO.buildScenery = function () {
     moboInst(fins, fItems, () => 'silver');
     // --- whole graphics cards, CPUs, transistor & capacitor dioramas as giant set pieces off the road
     MOBO.cards = [];
+    const big3 = (g, s, sd, sc, ry = 0) => { const p = sideSpot(s, 30, 40, sd); if (!p) return null; const o = EX_clone(g.scene); o.scale.setScalar(sc); o.position.set(p.x, p.y - .5, p.z); o.rotation.y = -p.th + ry; o.traverse(m => { if (m.isMesh) { m.material = moboMat(m.material); m.frustumCulled = false; } }); world.add(o); return o; };
+    for (const [s, sd] of [[zs(1) + 120, 1], [zs(1) + 420, -1], [zs(5) + 260, 1]]) { const o = big3(A.card, s, sd, 120, PI / 2); if (o) { const rot = []; o.traverse(m => { if (/rotor/.test(m.name)) rot.push(m); }); MOBO.cards.push(rot); } }
+    big3(A.cpu, zs(3) + 300, -1, 300); big3(A.cpu, zs(3) + 470, 1, 260, 1.2); big3(A.trans, zs(1) + 300, 1, 260); big3(A.capD, zs(2) + 330, -1, 320); big3(A.capD, zs(2) + 120, 1, 280, 2);
+  }
+  // --- DIMM slots in Memory Lanes: long latched sockets beside the road
+  { const slot = [], latch = [];
+    for (let s = zs(4) + 10; s < zs(5) - 30; s += 64) for (const sd of [-1, 1]) for (let k = 0; k < 3; k++) { const p = sideSpot(s + 26, 2.5 + k * 3.2, 2.6 + k * 3.2, sd); if (!p) continue; slot.push({ x: p.x, y: p.y + 1.2, z: p.z, ry: -p.th, sx: 1.6, sy: 2.4, sz: 50, c: [.08, .09, .12] }); for (const e of [-26, 26]) { const q = onTrack(s + 26 + e, p.d); latch.push({ x: q.x, y: q.y + 1.6, z: q.z, ry: -q.th, sx: 1.8, sy: 3.2, sz: 1.2, c: [.95, .95, .9] }); } }
+    inst(new THREE.BoxGeometry(1, 1, 1), patch(new THREE.MeshLambertMaterial({ color: 0xffffff })), slot.concat(latch)); }
+  // --- battery at the top: Battery Heights starts beside a giant cell
+  { const p = onTrack(60, -arrAt(T.wid, 60) - 14); const g = new THREE.CylinderGeometry(9, 9, 46, 32); worldGeos.push(g);
+    const can = new THREE.Mesh(g, patch(new THREE.MeshStandardMaterial({ color: 0x1b3a8f, roughness: .3, metalness: .4, envMap: A && A.env }))); can.rotation.set(PI / 2, 0, 0); can.rotation.order = 'YXZ'; can.rotation.y = -p.th; can.position.set(p.x, p.y + 6, p.z); can.frustumCulled = false; world.add(can);
+    const capG = new THREE.CylinderGeometry(3, 3, 3, 24); worldGeos.push(capG); const cap = new THREE.Mesh(capG, A ? moboMat({ uuid: 'bat', name: 'bat' }, 'silver') : M(0xcccccc)); cap.rotation.copy(can.rotation); const f = tpos(60 - 24, -arrAt(T.wid, 60) - 14, {}); cap.position.set(f.x, p.y + 6, f.z); cap.frustumCulled = false; world.add(cap);
+    const lab = new THREE.Mesh(new THREE.PlaneGeometry(30, 10), patch(new THREE.MeshBasicMaterial({ map: canvasT(512, 170, (c, W, H) => { c.fillStyle = '#ffc93c'; c.font = '900 120px Arial Black'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('+ 3V −', W / 2, H / 2); }), transparent: true, side: THREE.DoubleSide })));
+    lab.position.set(p.x + Math.cos(p.th) * 9.2, p.y + 6, p.z + Math.sin(p.th) * 9.2); lab.rotation.y = -p.th + PI / 2; lab.frustumCulled = false; world.add(lab); worldGeos.push(lab.geometry); }
+  // --- connector finish tunnel: a giant edge connector shell the racers dive into
+  { const s0 = T.fin - 8, L = 30, w = arrAt(T.wid, T.fin) + 2, H = 10, shell = A ? moboMat({ uuid: 'conn', name: 'conn' }, 'silver') : M(0xaaaaaa), gold = MB(2.2, 1.5, .5), parts = [], contacts = [];
+    for (let q = 0; q < L; q += 2) { const s = s0 + q, p = onTrack(s, 0), y = p.y; parts.push({ x: p.x, y: y + H, z: p.z, ry: -p.th, sx: w * 2 + 2, sy: 1, sz: 2.05 }); for (const sd of [-1, 1]) { const e = onTrack(s, sd * (w + .5)); parts.push({ x: e.x, y: y + H / 2, z: e.z, ry: -p.th, sx: 1, sy: H, sz: 2.05 }); if (q % 4 === 0) contacts.push({ x: e.x - Math.cos(p.th) * sd * .6, y: y + H * .55, z: e.z - Math.sin(p.th) * sd * .6, ry: -p.th, sx: .2, sy: H * .7, sz: .9 }); } }
+    inst(new THREE.BoxGeometry(1, 1, 1), shell, parts); inst(new THREE.BoxGeometry(1, 1, 1), gold, contacts); }
+  // --- spark arcs (chip pins) and solder blobs live in the world group too
+  MOBO.arcs = inst(new THREE.BoxGeometry(1, 1, 1), MB(1.6, 2.4, 2.6), Array.from({ length: 200 }, () => ({ x: 0, y: -1e4, z: 0, s: 0 })));
