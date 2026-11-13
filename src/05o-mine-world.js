@@ -251,3 +251,17 @@ void main(){ if(vBZ>uBD.z||vBA>3.1416)discard;
     add(new THREE.CylinderGeometry(.34, .26, 1.3, 10), blk, 0, 3.6, -2.7); add(new THREE.CylinderGeometry(.4, .4, .5, 10), blk, 0, 3.3, -.9); add(new THREE.BoxGeometry(2.3, .5, 7), red, 0, .95, 0);
     add(new THREE.ConeGeometry(1.5, 1.6, 4), red, 0, .75, -4.1, -PI / 2, PI / 4);
     V.locoWheels = []; for (const z of [-2.4, -.6, 1.2, 2.6]) for (const sd of [-1, 1]) { const wg = new THREE.CylinderGeometry(.62, .62, .14, 12); V.locoWheels.push(add(wg, red, sd * (G + .04), .62, z, 0, PI / 2)); }
+    const hm = new THREE.MeshBasicMaterial(); hm.color.setRGB(3.4, 2.8, 1.6); patch(hm); add(new THREE.CircleGeometry(.42, 12), hm, 0, 2.05, -3.52, 0, 0).rotation.y = PI;
+    const fm = new THREE.MeshBasicMaterial(); fm.color.setRGB(2.6, .6, .1); patch(fm); add(new THREE.BoxGeometry(1, .5, .1), fm, 0, 1.5, 3.27);
+    const bm = new THREE.MeshBasicMaterial({ transparent: true, opacity: .1, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }); bm.color.setRGB(1, .8, .45); patch(bm);
+    const cone = new THREE.ConeGeometry(5, 34, 12, 1, true); cone.translate(0, -17, 0); cone.rotateX(PI / 2); V.beam = add(cone, bm, 0, 2.05, -3.6);
+    V.locoLight = new THREE.PointLight(0xffd6a0, 2.4, 80, 1.3); V.locoLight.position.set(0, 2.6, -7); g.add(V.locoLight);
+    g.scale.setScalar(1.12); world.add(g); V.loco = g; }
+  V.lavaBurst = 0;
+};
+function M_(c, e) { return M(c, e); }
+MINE.reset = function () {
+  const V = MV; if (!V.built) return; V.built = false; hemi.intensity = .85; sunL.intensity = .9; V.loco = null; V.lava = null; V.gapMesh = []; V.decks = []; V.sig = [];
+  mComp.uniforms.uHeat.value = 0; mComp.uniforms.uLines.value = 0; $('hud').classList.remove('mine'); MINE.silence();
+};
+// ---------------------------------------------------------------- per-frame visuals
