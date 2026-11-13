@@ -290,3 +290,23 @@ function moboInst(P, items, matSwap) {
   if (!items.length) return [];
   const out = [];
   for (const p of P.parts) {
+    const m = new THREE.InstancedMesh(p.g, moboMat(p.m, matSwap && matSwap(p)), items.length);
+    items.forEach((it, i) => { _o3.position.set(it.x, it.y, it.z); _o3.rotation.set(it.rx || 0, it.ry || 0, it.rz || 0, 'YXZ'); _o3.scale.set(it.sx ?? it.s, it.sy ?? it.s, it.sz ?? it.s); _o3.updateMatrix(); m.setMatrixAt(i, _o3.matrix); });
+    m.frustumCulled = false; world.add(m); worldGeos.push(p.g); out.push(m);
+  }
+  return out;
+}
+const chipSwap = p => /black|Material/i.test(p.m.name) ? 'casing' : 'silver';
+function canvasT(w, h, f) { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t; }
+// place something flat on the track at (s,d)
+function onTrack(s, d) { ground(s, d, GV); const p = tpos(s, d, {}); return { x: p.x, y: GV.y, z: p.z, th: p.th, reg: GV.reg, void: GV.void, e: GV.e }; }
+
+MOBO.buildScenery = function () {
+  const T = track, A = MOBO.A, rnd = RNG(777), R = (a, b) => a + (b - a) * rnd(), zs = z => MOBO.zb[z];
+  scene.environment = A ? A.env : null;
+  MOBO.solids = [];
+  const onBranch = (s, d, m) => { for (let q = -m; q <= m; q += 2) { const j = clamp(Math.round((s + q) / DS), 0, T.N - 1); if (T.bw[j] > 0 && Math.abs(d - T.bo[j]) < T.bw[j] + m) return true; } return false; };
+  const sideSpot = (s, e0, e1, sd = rnd() < .5 ? -1 : 1, m = 3) => { const w = arrAt(T.wid, s), d = sd * (w + R(e0, e1)); const p = onTrack(s, d); if (p.void || p.reg === 3 && p.e > 6 || p.reg === 1 || onBranch(s, d, m)) return null; return Object.assign(p, { d, sd, s }); };
+  const solid = (s, d, r) => { if (Math.abs(d) - r < arrAt(T.wid, s) + 30) MOBO.solids.push({ s, d, r }); };
+  // --- silkscreen labels printed on the board
+  { const words = ['R12', 'C7', 'U3', 'R47', 'C22', 'Q4', 'D1', 'L3', 'J5', 'U12', 'C101', 'R8', '+', '−', '→', '→'];
