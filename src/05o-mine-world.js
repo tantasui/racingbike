@@ -111,3 +111,17 @@ function mineCartVis(r, dt) {
   if (down) { r.tum += r.spin * dt * (r.mode === 2 && r.wk !== 'lava' ? .25 : 1); r.tiltG.rotation.set(r.tum * .6, 0, r.tum); r.tiltG.position.y = .5; }
   else {
     const rock = Math.sin(r.wheel * 1.35) * .018 * Math.min(1, r.v / 9) + Math.sin(GM.t * 31 + r.i) * (r.onTrestle || 0) * .06 * (r.mode === 0 ? 1 : 0);
+    const tgt = r.mode === 0 ? -(r.tip * .62 + r.c.lean * .07) + rock : -r.c.lean * .22; r.tiltG.rotation.z += (tgt - r.tiltG.rotation.z) * Math.min(1, dt * 14);
+    r.tiltG.rotation.x = r.mode === 1 ? clamp(r.vel.y * .018, -.25, .25) : 0; r.tiltG.position.y = 0; r.tum = 0;
+  }
+  g.visible = !(r.mode === 2 && (r.wk === 'crush' || (r.wk === 'lava' && r.wt < 1.2))) && !(r.invT > 0 && (GM.t * 11 | 0) % 2 === 0);
+  for (const w of r.wheels) w.rotation.x = -r.wheel / (r.wheelR || .19);
+  if (r.wheelMat) r.wheelMat.emissive.setRGB(1.6 * r.heat, .32 * r.heat, .03 * r.heat);              // wheels glow when braking hard
+  const gh = r.ghostT > 0; if (gh !== r.ghostOn) { r.ghostOn = gh; for (const m of r.mats) { m.transparent = gh; m.opacity = gh ? .32 : 1; m.depthWrite = !gh; } }
+  r.lampMat.color.setRGB(2.6, 1.5, .45).multiplyScalar(.85 + .15 * Math.sin(GM.t * 23 + r.i * 3));
+  if (r.mixer) {
+    if (down) mineClip(r, 'crash', .08); else if (r.atkT > GM.t) mineClip(r, r.atkSide < 0 ? 'punch' : 'kick', .06); else mineClip(r, 'riding', .2);
+    r.mixer.update(dt); r.riderG.position.y = M.A.cart.floorY + .56 - r.duck * .42; r.riderG.rotation.x = -r.duck * .55; r.riderG.rotation.z = r.mode === 0 ? r.c.lean * .16 : r.c.lean * .3;
+  }
+  // sparks: hard braking, tipping on two wheels, scraping
+  if (r.mode === 0 && r.v > 4 && (r.heat > .35 || Math.abs(r.tip) > .45) && Math.random() < dt * 60) { const sd = Math.abs(r.tip) > .45 ? Math.sign(r.tip) : (Math.random() < .5 ? -1 : 1), i = r.ci; spawnP(r.pos.x + M.rx[i] * sd * .6, r.pos.y + .05, r.pos.z + M.rz[i] * sd * .6, -r.fw.x * r.v * .3 + (Math.random() - .5) * 3, 1 + Math.random() * 3, -r.fw.z * r.v * .3 + (Math.random() - .5) * 3, .25 + Math.random() * .3, .12, 2.6, 1.3, .3, 14); }
