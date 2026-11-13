@@ -223,3 +223,17 @@ void main(){ if(vBZ>uBD.z||vBA>3.1416)discard;
   V.sig = M.junc.map(J => { const l = M.lanes[J.lane], q = mineLP(l, J.u - 5, MQ), ry = mineYaw(q), h = Math.hypot(q.tx, q.tz) || 1, rx = -q.tz / h, rz = q.tx / h, parts = [];
     for (const sd of [-1, 1]) parts.push({ x: q.x + rx * sd * 2.3, y: q.y + 2.4, z: q.z + rz * sd * 2.3, ry, sx: .22, sy: 5.6, sz: .22 }); parts.push({ x: q.x, y: q.y + 5.2, z: q.z, ry, sx: 5, sy: .24, sz: .24 });
     inst(new THREE.BoxGeometry(1, 1, 1), T.iron, parts);
+    const lamps = [0, 1].map(k => { const m = new THREE.MeshBasicMaterial(); patch(m); const me = new THREE.Mesh(new THREE.IcosahedronGeometry(.42, 1), m); me.frustumCulled = false; const sd = k ? 1 : -1; if (J.vert) me.position.set(q.x, q.y + (k ? 3.7 : 4.65), q.z); else me.position.set(q.x + rx * sd * 1.15, q.y + 4.6, q.z + rz * sd * 1.15); world.add(me); worldGeos.push(me.geometry); return m; });
+    return { J, lamps }; });
+  // --- warning signs before every gap, beams, vents, buckets, rocks, pickups
+  { const signs = [], sp = [];
+    for (const l of M.lanes) for (const g of l.gaps) { const q = mineLP(l, g.a - 16, MQ), h = Math.hypot(q.tx, q.tz) || 1, rx = -q.tz / h, rz = q.tx / h; sp.push({ x: q.x + rx * 1.5, y: q.y + .9, z: q.z + rz * 1.5, sx: .1, sy: 2, sz: .1 }); signs.push({ x: q.x + rx * 1.5, y: q.y + 2.1, z: q.z + rz * 1.5, ry: mineYaw(q), rz: PI / 4, sx: .62, sy: .62, sz: .06 }); }
+    inst(new THREE.BoxGeometry(1, 1, 1), T.iron, sp); inst(new THREE.BoxGeometry(1, 1, 1), M_(0xd9a400, 0x5a3c00), signs); }
+  const sideOf = (lane, u, lat, up) => { const q = mineLP(M.lanes[lane], u, MQ), h = Math.hypot(q.tx, q.tz) || 1; return { x: q.x - q.tz / h * lat, y: q.y + up, z: q.z + q.tx / h * lat, ry: mineYaw(q), q }; };
+  const head = (M.A ? M.A.cart.floorY : .29) + 1.2;                                                    // seated rider's head height above the rail
+  V.beams = M.beamDef.map(b => { const p = sideOf(b.lane, b.u, 0, head + .12), me = new THREE.Mesh(new THREE.BoxGeometry(6.6, .34, .34), M_(0x6a4a22, 0x2a1800)); me.position.set(p.x, p.y, p.z); me.rotation.y = p.ry; me.frustumCulled = false; world.add(me); worldGeos.push(me.geometry); return { b, me }; });
+  V.vents = M.ventDef.map(v => { const p = sideOf(v.lane, v.u, v.side * 2.3, .7), g = new THREE.CylinderGeometry(.22, .28, 1.2, 8); g.rotateZ(PI / 2); const me = new THREE.Mesh(g, T.rust); me.position.set(p.x, p.y, p.z); me.rotation.y = p.ry; me.frustumCulled = false; world.add(me); worldGeos.push(g); return { v, p }; });
+  V.buckets = M.bucketDef.map(b => { const p = sideOf(b.lane, b.u, 0, 8.2), piv = new THREE.Group(); piv.position.set(p.x, p.y, p.z); piv.rotation.y = p.ry;
+    const rope = new THREE.Mesh(new THREE.BoxGeometry(.07, 6, .07), T.iron); rope.position.y = -3; const bk = new THREE.Mesh(new THREE.CylinderGeometry(.75, .5, 1.1, 10), T.rust); bk.position.y = -6.3; const sw = new THREE.Group(); sw.add(rope, bk); piv.add(sw);
+    const fr = new THREE.Mesh(new THREE.BoxGeometry(7, .3, .3), T.timber); piv.add(fr); for (const o of [rope, bk, fr]) { o.frustumCulled = false; worldGeos.push(o.geometry); } world.add(piv); return { b, sw }; });
+  V.rocks = M.rockDef.map(k => { const p = sideOf(k.lane, k.u, 0, 0), me = new THREE.Mesh(new THREE.IcosahedronGeometry(1.05, 0), T.rock); me.frustumCulled = false; world.add(me); worldGeos.push(me.geometry); return { k, p, me }; });
