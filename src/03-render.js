@@ -177,6 +177,8 @@ void main(){
   float l=dot(col,vec3(.3,.59,.11)); col=mix(vec3(l),col,uSat);
   col=mix(col,vec3(.92,.96,1.05),uWhite*(.55+.45*smoothstep(.0,.7,r)));
   vec3 x=max(col,0.); col=mix(x,.72+.28*(1.-exp(-(x-.72)/.28)),step(.72,x));
+  if(uLines>0.){ float an=atan(dir.y,dir.x*uAsp); float k=floor(an*60.); float ln=step(.82,hh(k+floor(uTimeP*14.)*.37))*smoothstep(.22,.7,r)*smoothstep(.02,.0,abs(fract(an*60.)-.5)-.18); col+=vec3(.75,1.,.95)*ln*uLines*.55; } // speed lines
+  col=col*uGrade+uLift;                                                        // per-world grade (identity unless set)
   vec2 v=vUv-.5; col*=1.-dot(v,v)*.75;
   gl_FragColor=vec4(col,1.);
 }`, { tS: { value: null }, tB: { value: null }, uBloom: { value: .5 }, uBlur: { value: 0 }, uWhite: { value: 0 }, uFlash: { value: 0 }, uAsp: { value: 1 }, uSat: { value: 1.12 }, uC: { value: new THREE.Vector2(.5, .5) }, uTint: { value: new THREE.Color(1, .6, .2) } });
