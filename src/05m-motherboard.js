@@ -621,3 +621,23 @@ MOBO.racerVis = function (r, dt) {
   M.lastGy = gy; M.suspV += (-M.susp * 220 - M.suspV * 14) * dt; M.susp = clamp(M.susp + M.suspV * dt, -.16, .12);
   r.body.position.y = -1 + M.susp; r.rider.g.position.y += M.susp * .6;
   if (r.viaRoll) r.pivot.rotation.z += r.viaRoll; // upside down on the underside of the board
+  if (r.isP) { const hide = MOBO.fp && !down; M.m.visible = !hide; }
+  if (down) r.rag.rotation.set(r.rag.rotation.x * .9, r.rag.rotation.y, r.rag.rotation.z * .9); // let the fall clip carry the tumble
+};
+// camera extras: first-person handlebar view (V / R3), underside via cam, slow-mo zoom, speed feel
+const _fp = new THREE.Vector3(), _fq = new THREE.Vector3();
+MOBO.camera = function (dt) {
+  const p = GM.player; if (!p) return;
+  if (pressed.KeyV || PAD.hit[11] || PAD.hit[10]) { MOBO.fp = !MOBO.fp; toast(MOBO.fp ? 'FIRST-PERSON VIEW' : 'CHASE VIEW'); }
+  const C = mComp.uniforms, sp = clamp(p.v / 38, 0, 1.3), boost = p.boostT > 0 ? 1 : 0, slow = MOBO.slowT > 0 ? 1 : 0;
+  tpos(p.s, p.d, TP0);
+  if (p.via) { // follow underneath, upside down
+    const yaw = TP0.th, fx = Math.sin(yaw), fz = -Math.cos(yaw);
+    camera.position.set(TP0.x - fx * 5.5, p.y - 1.6, TP0.z - fz * 5.5); camera.up.set(0, -1, 0); camera.lookAt(TP0.x + fx * 10, p.y - .4, TP0.z + fz * 10);
+    setBend(fx, fz);
+  } else if (MOBO.fp && !GM.demo && p.state !== 1) {
+    const yaw = TP0.th + p.a, fx = Math.sin(yaw), fz = -Math.cos(yaw);
+    p.rider.g.getWorldPosition(_fp); const bob = Math.sin(GM.t * (6 + p.v * .25)) * .025 * Math.min(1, p.v / 10);
+    camera.position.set(_fp.x + fx * .05, _fp.y + .48 + bob + (p.mb ? p.mb.susp * .5 : 0), _fp.z + fz * .05);
+    ground(p.s + 9, p.d, G1); camera.up.set(0, 1, 0); camera.lookAt(TP0.x + fx * 9, (G1.void ? p.y : G1.y) - .35, TP0.z + fz * 9);
+    camera.rotateZ(-p.lean * .55 - cam.roll * .3); setBend(fx, fz);
