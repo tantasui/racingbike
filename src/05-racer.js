@@ -10,7 +10,7 @@ function slopeAt(s, d, span = 1.2) {
   const sl = (G1.void || G2.void) ? (arrAt(track.cy, s + span) - arrAt(track.cy, s - span)) / (2 * span) : (G1.y - G2.y) / (2 * span);
   return clamp(sl, -.9, .9);
 }
-function nearLip(s) { for (const l of track.lips) { if (l > s + 9) return false; if (l >= s - 1) return true; } return false; }
+function nearLip(s, d) { for (const k of track.kicks) if (Math.abs(d - k.d) < k.hw && s > k.s0 + k.len - 6 && s < k.s0 + k.len + .5) return true; for (const l of track.lips) { if (l > s + 9) return false; if (l >= s - 1) return true; } return false; }
 function estAir(r) { // ballistic look-ahead: how long until this racer touches down
   let y = r.y, vy = r.vy, s = r.s; const ds = r.v * Math.cos(r.beta) * .1;
   for (let t = .1; t < 5; t += .1) { vy -= GRAV * .1; y += vy * .1; s += ds; ground(s, r.d, G1); if (!G1.void && y <= G1.y) return t; if (y < G1.h - 14) return t; }
@@ -31,6 +31,7 @@ class Racer {
     this.shadow = new THREE.Mesh(geo('disc', () => { const g = new THREE.CircleGeometry(1, 12); g.rotateX(-PI / 2); return g; }), shadowMat); this.shadow.frustumCulled = false; this.shadow.renderOrder = 5; scene.add(this.shadow);
     this.trail = new Trail(R.trail);
     this.rag = new THREE.Group(); this.rag.rotation.order = 'YXZ'; scene.add(this.rag);
+    if (course && course.mb) MOBO.dressRacer(this);
   }
   dispose() { scene.remove(this.root); scene.remove(this.shadow); scene.remove(this.rag); this.trail.dispose(); }
   place(s, d) {
