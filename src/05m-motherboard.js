@@ -193,3 +193,22 @@ void main(){
     if(s>uFin-42.&&s<uFin+20.){ float gf=step(.32,fract(d/1.7))*smoothstep(uFin-42.,uFin-38.,s); col=mix(col,vec3(1.,.78,.32),gf); em+=gf*.3; ec+=vec3(1.,.75,.3)*gf*.3; }
   } else if(reg<2.5||reg>4.5){
     // board edge in cross-section: copper layers between fibreglass, falling away into a teal abyss
+    float dep=vInfo.z, band=fract(dep*.55);
+    col=mix(vec3(.025,.08,.055),vec3(.55,.36,.12),step(.84,band));
+    em+=step(.86,band)*.06*smoothstep(30.,2.,dep); ec+=vec3(1.,.6,.2)*step(.86,band)*.06*smoothstep(30.,2.,dep);
+    float ab=smoothstep(6.,45.,dep); col=mix(col,vec3(.0,.1,.11),ab); em+=ab*.05; ec+=vec3(.1,.55,.5)*ab*.05;
+  } else if(reg<3.5){
+    // component wall: stacked chip packages with status LEDs
+    float row=floor(vW.y/2.2), cs=floor(s/7.+row*.37); float h=h21(vec2(cs,row));
+    col=mix(vec3(.04,.05,.06),vec3(.1,.13,.15),h); col*=.75+.5*step(.12,fract(vW.y/2.2))*step(.06,fract(s/7.+row*.37));
+    float led=smoothstep(.12,.0,length(vec2(fract(s/7.+row*.37)-.85,fract(vW.y/2.2)-.5)*vec2(7.,2.2)))*step(.55,h);
+    vec3 lc=mix(vec3(.3,1.2,1.),vec3(1.,.5,.15),step(.8,h)); em+=led*(1.+.5*sin(uTime*3.+h*40.)); ec+=lc*led*(1.+.5*sin(uTime*3.+h*40.));
+  } else {
+    // exposed live copper bus bar: touching it shorts you out
+    col=vec3(.8,.42,.14); float cr=pow(n2(vec2(s*.5-uTime*7.,vW.y*2.)),6.)*2.; em+=.35+cr; ec+=vec3(1.,.55,.2)*.35+vec3(.6,.9,1.)*cr;
+  }
+  if(under){ // bottom layer: darker, magenta traces
+    col=vec3(.012,.045,.03); vec2 g=vec2(s,d)/2.6; float h=h21(floor(g)+3.); vec2 f=fract(g);
+    float bt=h<.5?smoothstep(.08,.03,abs(f.y-.5)):smoothstep(.08,.03,abs(f.x-.5)); em=bt*.3; ec=vec3(1.,.25,.75)*bt*.3;
+  }
+  // gloss + light
