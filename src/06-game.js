@@ -113,13 +113,22 @@ function newRace(demo) {
 function ensureWorld(ci, then) {
   if (GM.built === ci) { then(); return; }
   $('loading').classList.add('on');
-  setTimeout(() => { buildWorld(ci); GM.built = ci; $('loading').classList.remove('on'); then(); }, 40);
+  const go = () => { buildWorld(ci); GM.built = ci; $('loading').classList.remove('on'); then(); };
+  if (COURSES[ci].mb) MOBO.load().then(() => setTimeout(go, 20)); else if (COURSES[ci].mine) MINE.load().then(() => setTimeout(go, 20)); else setTimeout(go, 40);
 }
 function playerCtl(c) {
   const up = keys.KeyW || keys.ArrowUp, dn = keys.KeyS || keys.ArrowDown;
   c.steer = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
   c.acc = up ? 1 : 0; c.brake = dn ? 1 : 0; c.jump = !!keys.Space; c.flipF = !!up; c.flipB = !!dn; c.spec = !!(keys.ShiftLeft || keys.ShiftRight);
   c.pL = !!pressed.KeyQ; c.kR = !!pressed.KeyE; c.boost = !!(pressed.ControlLeft || pressed.KeyF); c.reset = !!pressed.KeyR;
+  if (PAD.on) {
+    if (PAD.steer) c.steer = PAD.steer;
+    if (PAD.acc > .06) c.acc = 1; if (PAD.brake > .15) c.brake = 1;
+    c.jump = c.jump || !!PAD.b[0];
+    c.flipF = c.flipF || PAD.sy < -.45; c.flipB = c.flipB || PAD.sy > .45; // stick forward = front flip, back = back flip (air only)
+    c.spec = c.spec || !!PAD.b[3];
+    c.pL = c.pL || !!PAD.hit[2]; c.kR = c.kR || !!PAD.hit[1]; c.boost = c.boost || !!PAD.hit[5]; c.reset = c.reset || !!PAD.hit[8];
+  }
   return c;
 }
 function collide() {
