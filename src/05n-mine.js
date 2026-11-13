@@ -441,3 +441,20 @@ MINE.newRace = function (demo) {
   const rides = [GM.ride, 0, 1, 2, 1, 2], slots = [3, 0, 1, 2, 4, 5];
   for (let i = 0; i < 6; i++) { const r = new MineCart(i, rides[i], i === 0); r.place(0, 42 - slots[i] * 3.4); GM.racers.push(r); }
   GM.player = GM.racers[0]; GM.time = 0; GM.count = demo ? 0 : 3.4; GM.lastBeep = 4; GM.finWait = 0; GM.white = 0; GM.order = GM.racers.slice().sort((a, b) => b.prog - a.prog);
+  M.lapLead = 0; M.lavaY = -4; M.slowT = 0; M.proj.length = M.slicks.length = M.ramps.length = 0; M.pairS.fill(0); M.pairCD.fill(0); M.steamK = 0;
+  M.picks = M.pickDef.map(([lane, u]) => ({ lane, u, t: 0 }));
+  for (const l of M.lanes) for (const g of l.gaps) { g.bridgeT = 0; if (g.dyn) g.open = false; }
+  for (const t of M.trestles) { t.dmg = 0; t.lastT = -99; } for (const J of M.junc) { J.lockT = 0; J.rest = 1; J.last = J.opts[1]; }
+  Object.assign(M.loco, { prog: -320, lane: 0, u: M.L - 320, v: 0, stun: 0, gap: 200 });
+  clearFX(); cam.init = false; cam.shake = 0; cam.flash = 0; $('hWarn').textContent = ''; $('hPop').innerHTML = ''; $('hCount').textContent = '';
+  if (window.mineRaceVis) mineRaceVis();
+};
+MINE.timeScale = function (dt) { if (MINE.slowT > 0) { MINE.slowT -= dt; return .3; } return 1; };
+MINE.stepRace = function (dt) {
+  const M = MINE, R = GM.racers, pl = GM.player; GM.t += dt;
+  if (GM.count > 0) {
+    GM.count -= dt; const n = Math.ceil(GM.count - .4);
+    if (n !== GM.lastBeep) { GM.lastBeep = n; const el = $('hCount'); el.textContent = n > 0 ? n : 'GO!'; el.classList.remove('zap'); void el.offsetWidth; el.classList.add('zap'); AU.beep(n <= 0); }
+    if (GM.count > .4) { if (window.mineFrameVis) mineFrameVis(dt); return; }
+  } else if ($('hCount').textContent && GM.count < -.6) $('hCount').textContent = '';
+  if (GM.count <= 0) GM.count -= dt;
