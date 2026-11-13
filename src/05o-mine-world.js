@@ -364,3 +364,17 @@ MINE.camera = function (dt) {
   const M = MINE, p = GM.demo ? (GM.order[0] || GM.player) : GM.player, sp = clamp(p.v / 38, 0, 1.3), boost = p.boostT > 0 || p.surgeT > 0 ? 1 : 0;
   const dist = (GM.demo ? 8.5 : 5.4) + sp * 2.2 + boost * .7, h = 2.45 + sp * .35; let bx, by, bz, lx, ly, lz;
   if (p.mode === 0) { const B = mineLPx(p.lane, p.u - dist, MQ2); bx = B.x; by = B.y; bz = B.z; const F = mineLPx(p.lane, p.u + 11, MQ3); lx = F.x; ly = F.y; lz = F.z; }
+  else { bx = p.pos.x - p.fw.x * dist; by = p.pos.y - (p.mode === 1 && !p.tumble ? .6 : 0); bz = p.pos.z - p.fw.z * dist; lx = p.pos.x + p.fw.x * 11; ly = p.pos.y - 1; lz = p.pos.z + p.fw.z * 11; }
+  if (GM.demo) { cam.orbit += dt * .1; const a = Math.sin(cam.orbit) * 3; bx += M.rx[p.ci] * a; bz += M.rz[p.ci] * a; }
+  if (!cam.init) { cam.init = true; cam.px = bx; cam.py = by; cam.pz = bz; cam.lx = lx; cam.ly2 = ly; cam.lz = lz; cam.roll = 0; cam.fov = 66; }
+  const k = 1 - Math.exp(-dt * 9), k2 = 1 - Math.exp(-dt * 7);
+  cam.px += (bx - cam.px) * k; cam.py += (by - cam.py) * k2; cam.pz += (bz - cam.pz) * k; cam.lx += (lx - cam.lx) * k; cam.ly2 += (ly - cam.ly2) * k2; cam.lz += (lz - cam.lz) * k;
+  cam.shake *= Math.exp(-5.5 * dt); cam.flash *= Math.exp(-4 * dt);
+  const sh = cam.shake + boost * .05 + (p.onTrestle || 0) * .12, t = GM.t * 47;
+  camera.position.set(cam.px + Math.sin(t) * sh * .2, cam.py + h + Math.sin(t * 1.31 + 1) * sh * .2, cam.pz + Math.sin(t * .77 + 2) * sh * .2);
+  if (!M.env[p.ci]) camera.position.y = Math.min(camera.position.y, M.cy[p.ci] + 3.25);   // stay under the tunnel timbers
+  camera.up.set(0, 1, 0); camera.lookAt(cam.lx, cam.ly2 + 1.25, cam.lz);
+  const rollT = GM.demo || p.mode !== 0 ? 0 : clamp(p.aLat * .017 + p.tip * .2, -.44, .44); cam.roll += (rollT - cam.roll) * (1 - Math.exp(-dt * 5)); camera.rotateZ(-cam.roll);
+  const fovT = 63 + sp * 18 + boost * 10; cam.fov += (fovT - cam.fov) * (1 - Math.exp(-dt * 4)); camera.fov = cam.fov; camera.updateProjectionMatrix();
+  // curved world only out in the open cavern; tunnels (and their approaches) stay straight so they read clearly
+  let kt = 1; for (const d of [0, 60, 120, 180]) if (!M.env[(p.ci + d) % M.L]) kt = 0; M.bendK += (kt - M.bendK) * Math.min(1, dt * 1.1);
