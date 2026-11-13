@@ -293,3 +293,18 @@ function mineFrameVis(dt) {
   V.proj.forEach((me, i) => { const p = M.proj[i]; me.visible = !!p; if (p) { const q = mineLP(M.lanes[p.lane], p.u, MQ); me.position.set(q.x, q.y + 1 + Math.sin(p.t * 9) * .15, q.z); me.rotation.y = mineYaw(q); spawnP(q.x, q.y + 1, q.z, (Math.random() - .5) * 3, 2, (Math.random() - .5) * 3, .3, .16, 2.6, 1.4, .3, 8); } });
   V.slick.forEach((me, i) => { const p = M.slicks[i]; me.visible = !!p; if (p) { const q = mineLP(M.lanes[p.lane], p.u, MQ); me.position.set(q.x, q.y + .03, q.z); } });
   V.ramp.forEach((me, i) => { const p = M.ramps[i]; me.visible = !!p; if (p) { const q = mineLP(M.lanes[p.lane], p.u, MQ); me.position.set(q.x, q.y + .45, q.z); me.rotation.set(.3 + Math.asin(clamp(q.ty, -1, 1)), mineYaw(q), 0, 'YXZ'); } });
+  // locomotive
+  if (V.loco) { const K = M.loco, q = mineLPx(K.lane, K.u, MQ); V.loco.position.set(q.x, q.y, q.z); _mV.set(q.tx, q.ty, q.tz); mineOrient(V.loco, _mV); V.loco.visible = t > 3;
+    V.beam.rotation.y = Math.sin(GM.t * 1.1) * .32; V.beam.rotation.x = Math.sin(GM.t * .7) * .06; for (const w of V.locoWheels) w.rotation.x -= K.v * dt / .62;
+    if (K.v > 1) for (let k = 0; k < 2; k++) spawnP(q.x + q.tx * 3, q.y + 4.8, q.z + q.tz * 3, (Math.random() - .5) * 2, 3 + Math.random() * 3, (Math.random() - .5) * 2, 1.1, .9, .9, .32, .1, -1);
+    if (V.locoDot) V.locoDot.style.left = clamp(K.prog / (M.LAPS * M.L), 0, 1) * 100 + '%'; }
+  // air: embers rising off the lava, ash, the odd lava burst
+  const i = pl.ci, cav = M.env[i];
+  let n = (cav ? 1.6 : .35) * dt * 60; n = (n | 0) + (Math.random() < n % 1 ? 1 : 0);
+  for (let k = 0; k < n; k++) { const f = Math.random() * 70 - 8, l = (Math.random() - .5) * 60, x = pl.pos.x + M.hx[i] * f + M.rx[i] * l, z = pl.pos.z + M.hz[i] * f + M.rz[i] * l;
+    if (Math.random() < .75) spawnP(x, pl.pos.y - 6 + Math.random() * 14, z, (Math.random() - .5) * 1.5, 1 + Math.random() * 2.5, (Math.random() - .5) * 1.5, 1.6 + Math.random() * 1.6, .07 + Math.random() * .06, 2.2, .7 + Math.random() * .5, .1, -.4);
+    else spawnP(x, pl.pos.y + 3 + Math.random() * 8, z, (Math.random() - .5), -.8, (Math.random() - .5), 2.4, .07, .34, .3, .28, .1); }
+  V.lavaBurst -= dt; if (cav && V.lavaBurst <= 0) { V.lavaBurst = .5 + Math.random() * 1.4; const f = 20 + Math.random() * 60, l = (Math.random() - .5) * 70; burst(pl.pos.x + M.hx[i] * f + M.rx[i] * l, M.lavaY + .3, pl.pos.z + M.hz[i] * f + M.rz[i] * l, 26, 11, 1.4, .5, [2.6, .9, .12], 9, .9); }
+  if (!GM.demo) mineAudio(dt, pl); else AU.silence();
+}
+
