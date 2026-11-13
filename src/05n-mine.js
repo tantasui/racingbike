@@ -376,3 +376,19 @@ MINE.stepLoco = function (dt) {
 
 // ---------------------------------------------------------------- AI driver (also drives the player's cart in demo / auto mode)
 MINE.ai = function (r, dt) {
+  const M = MINE, c = r.c, D = DIFFS[GM.diff], sk = D.skill, A = r.ai;
+  c.acc = 1; c.brake = 0; c.lean = 0; c.jumpHit = false; c.duck = false; c.use = false; c.boostHit = false; c.choice = null; c.pL = c.kR = false;
+  if (r.mode === 2) return c;
+  if (r.mode === 1) {
+    if (r.tumble) return c; const i = r.ci, vl = r.vel.x * M.rx[i] + r.vel.z * M.rz[i]; let tx = 1e9;
+    for (const l of M.lanes) { const uu = r.u + r.v * .2; if (l.id && (uu < l.a || uu > l.b)) continue; mineLP(l, l.id ? uu : uu % M.L, MQ2); if (MQ2.y > r.pos.y + .3) continue; if (Math.abs(MQ2.ox - r.ox) < Math.abs(tx - r.ox)) tx = MQ2.ox; }
+    if (tx > 1e8) tx = r.ox; tx += A.err;
+    c.lean = r.rj && r.airT < .3 ? A.side : clamp((tx - r.ox) * 3.2, -1, 1); return c;
+  }
+  // speed for the curves ahead
+  const lim = M.LIM * r.stt.stab + 3.2 * sk; let brake = false;
+  for (let d = 3; d < 12 + r.v * 2; d += 4) { const P = mineLPx(r.lane, r.u + d, MQ2), vs = Math.sqrt(lim / Math.max(Math.abs(P.k), 1e-4)) * (.9 + .06 * sk), al = Math.sqrt(vs * vs + 2 * 11 * d); if (r.v > al) { brake = true; break; } }
+  if (brake) { c.acc = 0; c.brake = 1; }
+  if (Math.abs(r.aLat) > 2.5) c.lean = Math.sign(r.kNow);
+  // gaps: hop them — or, on the upper line, sometimes roll off on purpose to drop to the rail below
+  const g = mineNextGap(r.lane, r.u, 40);
