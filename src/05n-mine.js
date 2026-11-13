@@ -31,3 +31,19 @@ function mineTrack() {
   for (let it = 0; it < 4; it++) {
     const fine = []; let acc = 0, lx = EA * sc, lz = 0;
     for (let k = 0; k <= 2400; k++) { const th = k / 2400 * TAU, x = EA * sc * Math.cos(th), z = EB * sc * Math.sin(th); acc += Math.hypot(x - lx, z - lz); lx = x; lz = z; fine.push([x, z, acc, th]); }
+    const pts = []; let q = 0;
+    for (let i = 0; i < NP; i++) { const tg = i / NP * acc; while (fine[q][2] < tg) q++; const f = fine[q], nx = EB * Math.cos(f[3]), nz = EA * Math.sin(f[3]), nl = Math.hypot(nx, nz); pts.push([f[0] + nx / nl * dR[i], f[1] + nz / nl * dR[i], H[i]]); }
+    smp = []; len = 0; let px = 0, py = 0, pz = 0;
+    for (let i = 0; i < NP; i++) {
+      const p0 = pts[(i + NP - 1) % NP], p1 = pts[i], p2 = pts[(i + 1) % NP], p3 = pts[(i + 2) % NP];
+      for (let s = 0; s < 60; s++) {
+        const t = s / 60, t2 = t * t, t3 = t2 * t, o = [0, 1, 2].map(a => .5 * (2 * p1[a] + (-p0[a] + p2[a]) * t + (2 * p0[a] - 5 * p1[a] + 4 * p2[a] - p3[a]) * t2 + (-p0[a] + 3 * p1[a] - 3 * p2[a] + p3[a]) * t3));
+        if (smp.length) len += Math.hypot(o[0] - px, o[1] - py, o[2] - pz); px = o[0]; py = o[1]; pz = o[2]; smp.push([o[0], o[1], o[2], len]);
+      }
+    }
+    len += Math.hypot(smp[0][0] - px, smp[0][1] - py, smp[0][2] - pz); smp.push([smp[0][0], smp[0][1], smp[0][2], len]);
+    if (it < 3) sc *= L / len;
+  }
+  const cx = M.cx = new Float32Array(N + 1), cy = M.cy = new Float32Array(N + 1), cz = M.cz = new Float32Array(N + 1);
+  const hx = M.hx = new Float32Array(N + 1), hz = M.hz = new Float32Array(N + 1), rx = M.rx = new Float32Array(N + 1), rz = M.rz = new Float32Array(N + 1);
+  for (let i = 0, q = 0; i <= N; i++) { const tg = i / N * len; while (q < smp.length - 2 && smp[q + 1][3] < tg) q++; const a = smp[q], b = smp[q + 1], t = clamp((tg - a[3]) / Math.max(1e-6, b[3] - a[3]), 0, 1); cx[i] = lerp(a[0], b[0], t); cz[i] = lerp(a[1], b[1], t); cy[i] = lerp(a[2], b[2], t); }
