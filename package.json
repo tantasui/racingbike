@@ -1,0 +1,13 @@
+{
+  "name": "dreamfall",
+  "private": true,
+  "version": "0.3.0",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js && vite --open /dreamfall.html",
+    "serve": "vite --open /dreamfall.html"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8"
+  }
+}
