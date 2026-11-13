@@ -271,3 +271,22 @@ MOBO.buildTerrain = function () {
 function moboParts(gltf, opts = {}) {
   const root = gltf.scene; root.updateMatrixWorld(true);
   const box = new THREE.Box3(); root.traverse(o => { if (o.isMesh && (!opts.only || opts.only.test(o.name))) box.expandByObject(o); });
+  const c = box.getCenter(new THREE.Vector3()), parts = [];
+  const fix = new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z);
+  root.traverse(o => { if (!o.isMesh || (opts.only && !opts.only.test(o.name))) return; const g = o.geometry.clone(); g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(fix, o.matrixWorld)); parts.push({ g, m: o.material, name: o.name }); });
+  return { parts, size: box.getSize(new THREE.Vector3()) };
+}
+const moboMats = new Map();
+function moboMat(m, swap) { // clone + bend-patch a material once
+  const key = m.uuid + (swap || ''); if (moboMats.has(key)) return moboMats.get(key);
+  const A = MOBO.A; let out;
+  if (swap === 'casing') out = new THREE.MeshStandardMaterial({ color: 0x24272d, map: A.m08clean, normalMap: A.m08n, roughnessMap: A.m08r, metalness: .35, roughness: .8 });
+  else if (swap === 'silver') out = new THREE.MeshStandardMaterial({ color: 0xc8d2dc, map: A.m51c, normalMap: A.m51n, roughnessMap: A.m51r, metalness: .95, roughness: .45 });
+  else { out = m.clone(); if (out.metalness !== undefined) out.envMapIntensity = .9; }
+  out.envMap = A.env; patch(out); moboMats.set(key, out); return out;
+}
+// instance a parts list: items = [{x,y,z,ry,rx,s|sx,sy,sz}]; matSwap(part) -> 'casing' | 'silver' | undefined
+function moboInst(P, items, matSwap) {
+  if (!items.length) return [];
+  const out = [];
+  for (const p of P.parts) {
