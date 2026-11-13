@@ -253,21 +253,17 @@ function showResults() {
   show('scrRes'); AU.silence();
 }
 function initUI() {
-  const ctl = [['W / ↑', 'Pedal / accelerate'], ['S / ↓', 'Brake'], ['A D / ← →', 'Steer · spin in the air'], ['SPACE', 'Jump — hold to charge, release at a lip'], ['W / S in air', 'Front flip / back flip'], ['SHIFT in air', 'Whip · rear · barrel roll'], ['Q / E', 'Punch left / kick right'], ['L-CTRL or F', 'Spend boost'], ['R', 'Reset to track'], ['ESC', 'Pause'], ['M', 'Mute']];
+  const ctl = [['W / ↑', 'Pedal / accelerate'], ['S / ↓', 'Brake'], ['A D / ← →', 'Steer · spin in the air'], ['SPACE', 'Jump — hold to charge, release at a lip'], ['W / S in air', 'Front flip / back flip'], ['SHIFT in air', 'Whip · rear · barrel roll'], ['Q / E', 'Punch left / kick right'], ['L-CTRL or F', 'Spend boost'], ['R', 'Reset to track'], ['ESC', 'Pause'], ['M', 'Mute'], ['🎮 STICK', 'Steer · spin / flip in the air'], ['🎮 RT / LT', 'Pedal / brake'], ['🎮 A · X · B', 'Jump · punch · kick'], ['🎮 RB · Y · START', 'Boost · trick · pause'], ['MOLTEN MINE', 'A/D lean · SPACE jump · +lean = rail jump'], ['C · SHIFT', 'Mine: duck · use power-up (🎮 LB · Y)']];
   document.querySelectorAll('.controls').forEach(el => el.innerHTML = ctl.map(c => `<div><kbd>${c[0]}</kbd><span>${c[1]}</span></div>`).join(''));
   $('rideCards').innerHTML = RIDES.map((r, i) => `<div class="card" style="--c:${r.css}" onclick="pickRide(${i})"><h3>${r.name}</h3><p>${r.desc}</p>${r.stats.map((s, k) => `<div class="stat"><span>${STAT_NAMES[k]}</span><div class="bar"><i style="width:${s * 10}%"></i></div><em>${s}</em></div>`).join('')}<small>Signature trick: ${r.spec}</small></div>`).join('');
   $('courseCards').innerHTML = COURSES.map((c, i) => `<div class="card" style="--c:rgb(${c.fog.map(v => Math.min(255, v * 255 + 60 | 0))})" onclick="pickCourse(${i})"><div class="ico">${c.icon}</div><h3>${c.name}</h3><p>${c.sub}</p></div>`).join('');
   $('diffBtns').innerHTML = DIFFS.map((d, i) => `<button onclick="pickDiff(${i})">${d.name}</button>`).join('');
   pickRide(0); document.querySelectorAll('#courseCards .card')[0].classList.add('sel'); pickDiff(1);
   addEventListener('keydown', e => {
-    const k = e.code, st = GM.state, enter = k === 'Enter' || k === 'NumpadEnter', L = k === 'ArrowLeft' || k === 'KeyA', Rk = k === 'ArrowRight' || k === 'KeyD';
+    const k = e.code;
     if (k === 'KeyM') { AU.muted = !AU.muted; if (AU.muted) AU.silence(); }
-    if (st === 'menu' && (enter || k === 'Space')) toRide();
-    else if (st === 'ride') { if (L) pickRide((GM.ride + 2) % 3); else if (Rk) pickRide((GM.ride + 1) % 3); else if (enter) toCourse(); else if (k === 'Escape') toMenu(); }
-    else if (st === 'course') { if (L) pickCourse((GM.course + 4) % 5); else if (Rk) pickCourse((GM.course + 1) % 5); else if (k === 'ArrowUp' || k === 'KeyW') pickDiff(Math.min(2, GM.diff + 1)); else if (k === 'ArrowDown' || k === 'KeyS') pickDiff(Math.max(0, GM.diff - 1)); else if (enter) startRace(); else if (k === 'Escape') toRide(); }
-    else if (st === 'race' && k === 'Escape') pause();
-    else if (st === 'paused' && (k === 'Escape' || enter)) resume();
-    else if (st === 'results') { if (enter) startRace(); else if (k === 'Escape') toMenu(); }
+    const a = k === 'Enter' || k === 'NumpadEnter' || (k === 'Space' && GM.state === 'menu') ? 'ok' : k === 'Escape' ? 'back' : k === 'ArrowLeft' || k === 'KeyA' ? 'left' : k === 'ArrowRight' || k === 'KeyD' ? 'right' : k === 'ArrowUp' || k === 'KeyW' ? 'up' : k === 'ArrowDown' || k === 'KeyS' ? 'down' : '';
+    if (a) menuAct(a);
   });
   addEventListener('blur', () => pause());
   window.onbeforeunload = e => { if (GM.state === 'race') { e.preventDefault(); return e.returnValue = 'Race in progress'; } }; // guards against Ctrl+W while boosting
