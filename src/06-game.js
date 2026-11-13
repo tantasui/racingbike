@@ -209,8 +209,9 @@ function updCamera(dt) {
   setBend(fx, fz);
   const U = mComp.uniforms;
   U.uBlur.value = GM.demo ? .15 : clamp((p.v - 16) / 24, 0, 1) * .75 + boost * .55;
-  U.uWhite.value = GM.white * .62; U.uFlash.value = cam.flash + boost * .12; U.uBloom.value = .55 + boost * .2;
+  U.uWhite.value = GM.white * .62; U.uFlash.value = cam.flash + boost * .12; U.uBloom.value = (course.mb ? .2 : .55) + boost * (course.mb ? .1 : .2);
   uFogD.value = scene.fog.density = course.fogD * (1 + GM.white * 5);
+  if (course.mb) MOBO.camera(dt);
 }
 
 // ---------------------------------------------------------------- HUD
@@ -220,6 +221,7 @@ const fmtT = t => { const m = t / 60 | 0, s = t - m * 60; return m + ':' + (s < 
 const ORD = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
 function buildProg() { const b = $('hProg'); b.innerHTML = '<i class="fin"></i>'; GM.racers.forEach((r, i) => { const d = document.createElement('b'); d.style.background = d.style.color = RCSS[i]; if (i === 0) d.className = 'me'; b.appendChild(d); r.dot = d; }); track.cps.slice(1).forEach(s => { const c = document.createElement('i'); c.style.left = (s / track.fin * 100) + '%'; b.appendChild(c); }); }
 function updHUD() {
+  if (course.mine) return MINE.hud();
   const p = GM.player;
   setTxt('hTime', fmtT(p.fin ? p.finT : GM.time));
   setTxt('hPos', ORD[GM.order.indexOf(p)]);
