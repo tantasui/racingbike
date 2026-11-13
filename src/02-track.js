@@ -94,7 +94,10 @@ function ground(s, d, o) {
     if (T.gap[j]) { o.void = true; o.reg = 5; o.y = h - 45; return o; }
     const zf = T.zf[j];
     if (zf & 1) { if (vnoise(s * .045 + 9.3, d * .13 + 2.1) > .42) o.surf = 1; } else if (zf & 2) o.surf = 2;
-    o.y = h + (vnoise(s * .05, d * .15) - .5) * T.rough; return o;
+    let y = h + (vnoise(s * .05, d * .15) - .5) * T.rough;
+    if (T.mb) y += moboBump(s, d);
+    for (const k of T.kicks) { const q = s - k.s0; if (q > 0 && q < k.len + 1.2 && Math.abs(d - k.d) < k.hw) { const u = q / k.len; y += k.H * (u <= 1 ? u * u : Math.max(0, 1 - (q - k.len) / 1.2)); } }
+    o.y = y; return o;
   }
   const bw = T.bw[j]; let side = -1, e = 0, base = h;
   if (bw > 0) {
