@@ -209,3 +209,17 @@ void main(){ if(vBZ>uBD.z||vBA>3.1416)discard;
   // --- the cavern: outer wall leaning in to a roof, a central rock mass, both lit from below by the lava
   { const ax = M.ext[0], az = M.ext[1], seg = 84, rows = 11, H = 190, y0 = -18;
     const shell = fn => { const P = [], C = [], I = [];
+      for (let r = 0; r <= rows; r++) for (let s = 0; s <= seg; s++) { const t = r / rows, th = (s % seg) / seg * TAU, k = fn(t) * (1 + (fbm(Math.cos(th) * 1.9 + 3 + r * .21, Math.sin(th) * 1.9 + 7, 3) - .5) * .3), y = y0 + t * H + (hash2(r, s) - .5) * 8;
+        P.push(ax * k * Math.cos(th), y, az * k * Math.sin(th)); const gl = Math.exp(-Math.max(0, y + 2) / 34), b = .035 + .05 * hash2(s * 1.7, r * 2.9); C.push(b + 1.05 * gl, b * .7 + .3 * gl, b * .55 + .045 * gl); }
+      for (let r = 0; r < rows; r++) for (let s = 0; s < seg; s++) { const p0 = r * (seg + 1) + s, p1 = p0 + seg + 1; I.push(p0, p1, p0 + 1, p0 + 1, p1, p1 + 1); }
+      addMesh(mineGeo(P, I, C), T.cav); };
+    shell(t => 1.55 * (1 - .6 * t * t)); shell(t => .5 + .55 * t * t);
+    const pil = [], stal = [], far = (x, z) => { let m = 1e9; for (let i = 0; i < L; i += 12) m = Math.min(m, Math.hypot(x - M.cx[i], z - M.cz[i])); return m; };
+    for (let n = 0; n < 400 && pil.length < 46; n++) { const th = R(0, TAU), k = R(.62, 1.4), x = ax * k * Math.cos(th), z = az * k * Math.sin(th); if (far(x, z) < 36) continue; const h = R(34, 105); pil.push({ x, y: y0 + h / 2, z, sx: R(7, 20), sy: h, sz: R(7, 20), ry: R(0, 6) }); }
+    for (let n = 0; n < 70; n++) { const th = R(0, TAU), k = R(.6, 1.25), h = R(25, 70); stal.push({ x: ax * k * Math.cos(th), y: R(95, 150), z: az * k * Math.sin(th), sx: R(4, 11), sy: h, sz: R(4, 11), rx: PI, ry: R(0, 6) }); }
+    inst(new THREE.ConeGeometry(1, 1, 6), T.rock, pil.concat(stal));
+    const lg = new THREE.PlaneGeometry(ax * 4, az * 4.4, 64, 64); lg.rotateX(-PI / 2); V.lava = addMesh(lg, T.lava); }
+  // --- junction signals: a gantry with one lamp per branch, readable from far back
+  V.sig = M.junc.map(J => { const l = M.lanes[J.lane], q = mineLP(l, J.u - 5, MQ), ry = mineYaw(q), h = Math.hypot(q.tx, q.tz) || 1, rx = -q.tz / h, rz = q.tx / h, parts = [];
+    for (const sd of [-1, 1]) parts.push({ x: q.x + rx * sd * 2.3, y: q.y + 2.4, z: q.z + rz * sd * 2.3, ry, sx: .22, sy: 5.6, sz: .22 }); parts.push({ x: q.x, y: q.y + 5.2, z: q.z, ry, sx: 5, sy: .24, sz: .24 });
+    inst(new THREE.BoxGeometry(1, 1, 1), T.iron, parts);
