@@ -446,3 +446,22 @@ MOBO.racerPre = function (r, dt, c) {
   r.y = lerp(ground(v.s0, v.d0, G1).y, under, dropIn); r.viaRoll = PI * dropIn; r.air = false; r.vy = 0;
   if (r.s >= v.s1 - .5) { // pop out through the exit via
     r.via = null; r.y = ground(r.s, r.d, G0).y + .2; r.vy = 12; r.air = true; r.airT = 0; r.takeoff(); r.inv = Math.max(r.inv, .6); evt('viaOut', r);
+  }
+  while (r.cpI + 1 < track.cps.length && r.s >= track.cps[r.cpI + 1]) { r.cpI++; r.cpS = track.cps[r.cpI]; evt('cp', r); }
+  return true;
+};
+MOBO.racerPost = function (r, dt) {
+  const T = track, s = r.s, d = r.d, ps = r.mbPrevS ?? s;
+  if (r.viaRoll) r.viaRoll = Math.max(0, r.viaRoll - dt * 9);
+  r.pulseCD = Math.max(0, (r.pulseCD || 0) - dt);
+  // current pulses: riding a trace as a pulse passes = free boost (the racing line)
+  if (!r.air && r.pulseCD <= 0) { const k = onLane(r); if (k >= 0 && Math.abs(pulseAt(k, s)) < 4.5) { r.pulseCD = 2.2; r.boostT = Math.max(r.boostT, 1.6); r.v += 4; evt('pulse', r); } }
+  if (r.isP && !GM.demo && r.air && r.airT === 0 && estAir(r) > 1.6) MOBO.slow(.75); // big launches go slow-motion
+  if (r.air || r.state) return;
+  // vias: drop in, ride the underside, pop out further down
+  for (const v of MOBO.vias) if (Math.abs(s - v.s0) < v.r && Math.hypot(s - v.s0, d - v.d0) < v.r * .85) { r.via = { s0: v.s0, d0: v.d0, s1: v.s1, d1: v.d1, t: 0 }; r.charge = 0; evt('viaIn', r); return; }
+  // capacitor launch pads
+  for (const cp of MOBO.caps) if (cp.ch >= 1 && Math.abs(s - cp.s) < cp.r && Math.hypot(s - cp.s, d - cp.d) < cp.r) { cp.ch = 0; r.vy = 20 + r.v * .12; r.v *= 1.05; r.air = true; r.airT = 0; r.y += .1; r.takeoff(); evt('cap', r); return; }
+  // chip pin gaps
+  for (let ci = 0; ci < MOBO.chips.length; ci++) { const c = MOBO.chips[ci]; if (!c.rows) continue; for (let row = 0; row < 2; row++) { const rs = c.rows[row]; if (ps < rs && s >= rs) {
+    for (const pd of c.pinD) if (Math.abs(d - pd) < c.pinW + .35) { r.crash('pin'); return; }
