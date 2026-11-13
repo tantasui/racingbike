@@ -80,3 +80,19 @@ function mineTrack() {
   }
   // tunnel gaps sit on the straightest stretch of their window (a gap on a curve cannot be jumped fairly)
   { const l = M.lanes[0], place = (g, lo, hi) => { let best = lo, bk = 1e9; for (let u = lo; u <= hi; u++) { let km = 0; for (let j = u - 3; j < u + 26; j++) km = Math.max(km, Math.abs(l.k[j])); if (km < bk) { bk = km; best = u; } } const len = g.b - g.a; g.a = best; g.b = best + len; };
+    place(l.gaps[1], 890, 925); place(l.gaps[3], 1648, 1690); }
+  // --- switches. opts = [lane taken by leaning left, lane taken by leaning right]; star = that branch carries power-ups
+  M.junc = [
+    { u: 350, lane: 0, opts: [0, 1], lab: ['LEFT', 'RIGHT'], star: [0, 0] }, { u: 400, lane: 0, opts: [2, 0], lab: ['LONG', 'SHORT'], star: [0, 1] }, { u: 400, lane: 1, opts: [1, 3], lab: ['SHORT', 'LONG'], star: [1, 0] },
+    { u: 990, lane: 0, opts: [4, 0], lab: ['UPPER', 'LOWER'], star: [0, 1], vert: 1 }, { u: 1250, lane: 0, opts: [6, 0], lab: ['LONG', 'SHORT'], star: [0, 1] }, { u: 1410, lane: 0, opts: [5, 0], lab: ['UPPER', 'LOWER'], star: [0, 1], vert: 1 }
+  ].map((j, id) => Object.assign(j, { id, rest: 1, lockT: 0, forced: 0, last: j.opts[1] }));
+  M.merges = M.lanes.filter(l => l.id).map(l => ({ u: l.b, lane: l.id, to: l.to }));
+  // --- collapsing trestles (each owns a gap that opens when the bridge fails)
+  const dynGap = (lane, a, b) => { const g = { a, b, lap: 0, drop: false, bridgeT: 0, dyn: true, open: false }; M.lanes[lane].gaps.push(g); return g; };
+  M.trestles = [{ lane: 0, a: 225, b: 300, gap: dynGap(0, 262, 269) }, { lane: 1, a: 585, b: 640, gap: dynGap(1, 612, 619) }, { lane: 0, a: 1262, b: 1378, gap: dynGap(0, 1345, 1352) }].map(t => Object.assign(t, { dmg: 0, lastT: -99 }));
+  M.pickDef = [[0, 478], [0, 548], [1, 470], [1, 565], [1, 628], [0, 1062], [0, 1112], [0, 1160], [0, 1288], [0, 1365], [0, 1470], [0, 1522]];
+  M.rockDef = [[820, 0, 0], [950, 0, 0], [1620, 0, 1], [880, 0, 1], [1700, 0, 2], [1760, 0, 2]].map(([u, lane, lap], i) => ({ u, lane, lap, ph: i * 2.3 }));
+  M.bucketDef = [[1075, 0], [1128, 0], [1500, 0]].map(([u, lane], i) => ({ u, lane, ph: i * 1.3 }));
+  M.beamDef = [[780, 0, 0], [540, 1, 0], [1640, 0, 0], [935, 0, 1], [1745, 0, 2], [1190, 0, 1]].map(([u, lane, lap]) => ({ u, lane, lap }));
+  M.ventDef = [[850, 0, 1, 0], [1600, 0, -1, 0], [530, 0, 1, 1], [1340, 0, -1, 1], [1730, 0, 1, 2]].map(([u, lane, side, lap], i) => ({ u, lane, side, lap, ph: i * 1.7 }));
+}
