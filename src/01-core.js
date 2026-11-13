@@ -109,6 +109,7 @@ const AU = {
   beep(hi) { this.tone(hi ? 1046 : 523, hi ? .6 : .2, { type: 'square', vol: .16 }); },
   trick(n) { for (let i = 0; i < Math.min(5, n + 1); i++) this.tone(660 * Math.pow(1.189, i * 2), .16, { delay: i * .06, type: 'triangle', vol: .15 }); },
   ui() { this.tone(880, .07, { type: 'square', vol: .08 }); },
+  pad() { this.tone(300, .5, { to: 1400, type: 'sawtooth', vol: .14 }); this.noise(.5, { f: 600, to: 4500, vol: .16, q: .5 }); },
   swing() { this.noise(.12, { f: 700, to: 2400, vol: .12 }); },
   splash() { this.noise(.6, { f: 2500, to: 200, vol: .35 }); this.tone(70, .5, { to: 35, vol: .3 }); },
   geyser() { this.noise(.9, { f: 400, to: 3500, vol: .2, q: .4 }); },
