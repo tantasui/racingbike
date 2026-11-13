@@ -39,16 +39,19 @@ class Racer {
     this.y = ground(s, d, G0).y; this.unrag();
     tpos(s, d, TP0); this.trail.reset(TP0.x, this.y, TP0.z);
   }
-  addBoost(n) { this.boost = Math.min(5, this.boost + n); }
+  addBoost(n) { const was = this.boost; this.boost = Math.min(5, this.boost + n); if (was < 5 && this.boost >= 5 && course.mb) evt('full', this); }
   // ------------------------------------------------------------ main step
   update(dt, c) {
     const T = track, st = this.st;
     this.cool = Math.max(0, this.cool - dt); this.inv = Math.max(0, this.inv - dt); this.atkT = Math.max(0, this.atkT - dt); this.flash = Math.max(0, this.flash - dt);
     if (this.state === 1) { this.downUpdate(dt); return; }
+    if (course.mb && MOBO.racerPre(this, dt, c)) return;
     this.health = Math.min(st.hp, this.health + 3 * dt);
     if (c.reset && !this.air) { this.crashKind = 'reset'; this.respawn(); return; }
     if (c.boost && this.boost >= 1 && this.boostT < .3) { this.boost -= 1; this.boostT += 2; evt('boost', this); }
     if (this.boostT > 0) this.boostT -= dt;
+    this.padCD = Math.max(0, (this.padCD || 0) - dt);
+    if (!this.air && this.padCD <= 0) for (const p of T.pads) if (Math.abs(p.s - this.s) < 4 && Math.abs(p.d - this.d) < 2.5) { this.padCD = 1.2; this.boostT = Math.max(this.boostT, 1.7); this.v += 7; evt('pad', this); break; }
     const boosting = this.boostT > 0, vmax = st.vmax * this.rb * (boosting ? 1.3 : 1);
     this.steerSm += (c.steer - this.steerSm) * Math.min(1, dt * 9);
     ground(this.s, this.d, G0); this.surf = G0.surf; this.zf = T.zf[G0.i];
