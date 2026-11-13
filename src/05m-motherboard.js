@@ -310,3 +310,22 @@ MOBO.buildScenery = function () {
   const solid = (s, d, r) => { if (Math.abs(d) - r < arrAt(T.wid, s) + 30) MOBO.solids.push({ s, d, r }); };
   // --- silkscreen labels printed on the board
   { const words = ['R12', 'C7', 'U3', 'R47', 'C22', 'Q4', 'D1', 'L3', 'J5', 'U12', 'C101', 'R8', '+', '−', '→', '→'];
+    const pg = new THREE.PlaneGeometry(1, 1); pg.rotateX(-PI / 2); worldGeos.push(pg);
+    words.forEach((w, wi) => {
+      const tex = canvasT(256, 128, (c, W, H) => { c.fillStyle = '#fff'; c.font = `900 ${w.length > 2 ? 78 : 104}px "Arial Black",Arial,sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(w, W / 2, H / 2 + 4); if (w === 'U3' || w === 'U12') { c.lineWidth = 6; c.strokeStyle = '#fff'; c.strokeRect(8, 8, W - 16, H - 16); } });
+      const mat = patch(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, color: new THREE.Color(.75, .85, .8), polygonOffset: true, polygonOffsetFactor: -2 }));
+      const items = [];
+      for (let n = 0; n < 46; n++) {
+        const s = R(30, T.fin), w2 = arrAt(T.wid, s) - 1.5; let d = R(-w2, w2), ok = true;
+        for (let k = 0; k < 3; k++) if (Math.abs(d - MOBO.laneAt(k, s)) < MOBO.laneW[k] + 1.6) ok = false; if (!ok) continue;
+        const p = onTrack(s, d), sc = R(1.4, 2.6), arrow = w === '→';
+        items.push({ x: p.x, y: p.y + .04, z: p.z, ry: -p.th + (arrow ? PI / 2 : (rnd() < .5 ? 0 : PI / 2)), rx: Math.atan(slopeAt(s, d, 1.5)), sx: sc * 2, sy: 1, sz: sc });
+      }
+      const m = inst(pg, mat, items); if (m) m.renderOrder = 3;
+    }); }
+  // --- LEDs along both board edges (they light in sequence when the board powers up)
+  { const items = [], ss = [];
+    for (let s = 20; s < T.len - 20; s += 6) for (const sd of [-1, 1]) { const w = arrAt(T.wid, s), j = Math.round(s / DS); if (T.gap[j] || (T.bw[j] > 0 && Math.sign(T.bo[j]) === sd)) continue; const p = onTrack(s, sd * (w + .55)); if (p.void && p.e > 3) continue; items.push({ x: p.x, y: p.y + .22, z: p.z, ry: -p.th, sx: .5, sy: .32, sz: .8, c: [1, 1, 1] }); ss.push(s); }
+    const mat = patch(new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    const m = inst(new THREE.BoxGeometry(1, 1, 1), mat, items);
+    MOBO.leds = { m, s: ss, n: ss.length, hue: ss.map((_, i) => hash2(i, 3)) }; }
