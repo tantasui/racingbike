@@ -146,6 +146,8 @@ void main(){
   ${far ? `
   if(uPat>.5&&uPat<1.5){ float v=1.-abs(n2(vW.xz*.0045)*2.-1.); float v2=1.-abs(n2(vW.xz*.013+5.)*2.-1.); gl=smoothstep(.9,.985,v)+smoothstep(.93,.99,v2)*.7; col=mix(col,uLava,clamp(gl,0.,1.)); gl*=1.4+.4*sin(uTime*1.5+vW.x*.01); }
   else if(uPat>1.5&&uPat<2.5){ float dxr=abs(vG*2200.)-(440.+90.*sin(vW.z*.0035)); gl=smoothstep(30.,12.,abs(dxr)); col=mix(col,vec3(.35,1.25,1.5),gl); gl*=.9+.3*n2(vW.xz*.05+uTime*.5); col*=.85+.3*sin(vW.y*.11+g*2.); }
+  else if(uPat>3.5){ vec2 g=vW.xz/22.; vec2 id=floor(g),f=fract(g); float h=h21(id); float ln=step(h,.5)*smoothstep(.05,.0,abs(f.y-.5))+step(.4,h)*step(h,.9)*smoothstep(.05,.0,abs(f.x-.5)); float pad=smoothstep(.12,.08,length(f-.5))*step(.7,h);
+    col=mix(col,vec3(.05,.2,.09),clamp(ln,0.,1.)*.8); col=mix(col,vec3(.55,.53,.48),pad); col=mix(col,vec3(.02,.025,.03),step(.965,h)*step(abs(f.x-.5),.42)*step(abs(f.y-.5),.42)); gl=0.; } // Motherboard: plain PCB, no glow
   else if(uPat>2.5){ float w=sin(vW.x*.02+n2(vW.xz*.003)*7.+vW.z*.007); gl=smoothstep(.9,1.,w)*.9; col=mix(col,vec3(1.5,1.05,.3),gl); }
   ` : `
   float hl=0.; for(int i=0;i<6;i++){ vec3 d=vW-uHL[i].xyz; hl+=uHL[i].w*exp(-dot(d,d)*.035); }
