@@ -211,3 +211,20 @@ class MineCart {
     if (c.jumpHit && this.stunT <= 0 && GM.count <= 0) { const side = Math.abs(lean) > .3 ? Math.sign(lean) : 0; this.launch(8.4, side, side ? 6 : 0); mineFx('jump', this, side); }
   }
   air(dt, lean) {
+    const M = MINE, L = M.L, N = L; this.airT += dt; this.vel.y -= MGRAV * dt;
+    let bi = this.ci, bd = 1e9; for (let d = -4; d <= 8; d++) { const j = ((this.ci + d) % N + N) % N, dx = this.pos.x - M.cx[j], dz = this.pos.z - M.cz[j], q = dx * dx + dz * dz; if (q < bd) { bd = q; bi = j; } }
+    const wrapped = this.ci > N - 40 && bi < 40; this.ci = bi;
+    if (!this.tumble) { // in the air, lean sets sideways speed directly; with no lean the cart keeps following the line of the track
+      const al = this.vel.x * M.hx[bi] + this.vel.z * M.hz[bi]; let la = this.vel.x * M.rx[bi] + this.vel.z * M.rz[bi]; la += (lean * 4.6 - la) * Math.min(1, dt * 9);
+      this.vel.x = M.hx[bi] * al + M.rx[bi] * la; this.vel.z = M.hz[bi] * al + M.rz[bi] * la; }
+    this.pos.addScaledVector(this.vel, dt);
+    const ex = this.pos.x - M.cx[bi], ez = this.pos.z - M.cz[bi]; this.ox = ex * M.rx[bi] + ez * M.rz[bi]; let uu = bi + ex * M.hx[bi] + ez * M.hz[bi];
+    if (wrapped) { this.lap++; mineLap(this); } if (uu < 0) uu += L; if (uu >= L) uu -= L;
+    this.u = uu; this.prog = this.lap * L + uu; const hv = Math.hypot(this.vel.x, this.vel.z) || 1; this.fw.set(this.vel.x / hv, 0, this.vel.z / hv); this.v = hv;
+    if (!this.tumble && this.vel.y <= 2 && this.airT > .08) {
+      let best = -1, bdx = 9, bdd = 0;
+      for (const l of M.lanes) { if (l.id && (uu < l.a || uu > l.b)) continue; if (mineGapAt(l.id, uu)) continue; const P = mineLP(l, uu, MQ2), dy = this.pos.y - P.y, dx = this.ox - P.ox; if (dy <= .06 && dy > -.8 && Math.abs(dx) < Math.abs(bdx)) { bdx = dx; best = l.id; bdd = dy; } }
+      if (best >= 0 && Math.abs(bdx) < 1.0) {
+        if (Math.abs(bdx) < .62) {
+          const P = mineLP(M.lanes[best], uu, MQ2); this.mode = 0; this.lane = best; this.u = uu; this.v = Math.max(4, this.vel.x * P.tx + this.vel.y * P.ty * .3 + this.vel.z * P.tz); this.tipImp += clamp(bdx * .55, -.5, .5);
+          this.pos.set(P.x, P.y, P.z); const perfect = this.rj && Math.abs(bdx) < .2;
