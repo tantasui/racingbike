@@ -162,3 +162,20 @@ class MineCart {
     for (let g = 0; g < 30 && mineGapAt(lane, u); g++) u += 1.5; for (let g = 0; g < 30 && mineGapAt(lane, u + 4); g++) u += 1.5;
     if (lane && u > M.lanes[lane].b - 1) { lane = M.lanes[lane].to; }
     this.lane = lane; this.u = u; this.prog = this.lap * L + u; this.mode = 0; this.v = this.wk === 'crush' ? 20 : 17; this.tip = 0; this.tipImp = 0; this.tumble = false; this.health = 100; this.invT = 2.4; this.spin = 0;
+    this.oilT = this.lockT = this.blindT = this.stunT = 0; mineLP(M.lanes[lane], u, MQ); this.pos.set(MQ.x, MQ.y, MQ.z); this.ci = Math.round(u) % L; mineFx('respawn', this);
+  }
+  update(dt, c) {
+    const M = MINE, L = M.L;
+    for (const k of ['ghostT', 'oilT', 'lockT', 'blindT', 'surgeT', 'invT', 'stunT', 'hazCD', 'boostT', 'lastByT']) if (this[k] > 0) this[k] -= dt;
+    for (const g of [this]) if (g.ai.rjCD > 0) g.ai.rjCD -= dt;
+    if (this.mode === 2) {
+      this.wt -= dt; this.vel.y -= MGRAV * dt; this.pos.addScaledVector(this.vel, dt);
+      const fl = M.env[this.ci] === 0 ? M.cy[this.ci] - .45 : -1e9; if (this.pos.y < fl) { this.pos.y = fl; this.vel.y = 0; this.vel.multiplyScalar(Math.max(0, 1 - dt * 5)); }
+      if (this.pos.y < M.lavaY - .6) { this.pos.y = M.lavaY - .6; this.vel.set(0, 0, 0); }
+      if (this.wt <= 0) this.respawn(); return;
+    }
+    let acc = c.acc, brake = c.brake, lean = c.lean;
+    if (this.lockT > 0) { brake = 0; acc = 1; } if (this.oilT > 0) { brake *= .12; lean = 0; } if (this.stunT > 0) { acc = 0; lean = 0; }
+    if (this.fin) { acc = this.v < 12 ? .6 : 0; brake = this.v > 16 ? .4 : 0; }
+    this.duck += ((c.duck ? 1 : 0) - this.duck) * Math.min(1, dt * 14);
+    if (c.boostHit && this.boost >= 1 && this.boostT <= 0 && this.mode === 0) { this.boost -= 1; this.boostT = 1.7; mineFx('boost', this); }
