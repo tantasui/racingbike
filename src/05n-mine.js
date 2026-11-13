@@ -359,3 +359,20 @@ MINE.stepHaz = function (dt) {
     }
   }
   for (const t of M.trestles) if (t.dmg > 0 && GM.time - t.lastT > 16) { t.dmg = 0; t.gap.open = false; mineFx('rebuilt', null, t); }
+  M.steamK = Math.max(0, M.steamK - dt * 1.4);
+};
+// the locomotive: grinds along behind the pack, a little faster every lap; whoever it reaches is crushed
+MINE.stepLoco = function (dt) {
+  const M = MINE, K = M.loco, L = M.L, R = GM.racers; if (GM.time < 3.5) return;
+  let last = 1e9; for (const r of R) if (!r.fin && r.mode !== 2) last = Math.min(last, r.prog); if (last > 1e8) { K.v = 0; return; }
+  const lap = clamp(Math.floor(Math.max(0, K.prog) / L), 0, 2); let v = [13.5, 15.5, 17.5][lap] * [.85, 1, 1.1][GM.diff];
+  const gap = last - K.prog; if (gap > 500) v *= 1.5; if (K.stun > 0) { K.stun -= dt; v *= .25; }
+  K.v += (v - K.v) * Math.min(1, dt * 1.2); K.prog += K.v * dt; K.gap = gap;
+  let u = ((K.prog % L) + L) % L; const u0 = K.u;
+  for (const J of M.junc) if (J.lane === K.lane && u0 < J.u && u >= J.u) K.lane = J.last;
+  if (K.lane && u >= M.lanes[K.lane].b) K.lane = M.lanes[K.lane].to; if (K.lane && u < M.lanes[K.lane].a) K.lane = 0; K.u = u;
+  for (const r of R) if (!r.fin && r.mode !== 2 && r.invT <= 0 && r.prog < K.prog + 2.6) { r.u = u; r.wreck('crush'); K.stun = 3.2; K.prog -= 30; }
+};
+
+// ---------------------------------------------------------------- AI driver (also drives the player's cart in demo / auto mode)
+MINE.ai = function (r, dt) {
