@@ -244,3 +244,20 @@ class MineCart {
 function mineSwitch(J, r, want) {
   let idx;
   if (r.ai) r.ai.plan[J.id] = null;
+  if (J.lockT > 0 && r.ghostT <= 0) { idx = J.forced; if (want >= 0 && want !== idx) mineFx('switched', r, J); }
+  else {
+    idx = r.oilT > 0 ? J.rest : want >= 0 ? want : J.rest;
+    if (J.lockT > 0) mineFx('ghostsw', r, J);
+    else { J.lockT = 4.5; J.forced = 1 - idx; J.rest = 1 - idx; J.by = r; mineFx('throw', r, J); }
+  }
+  J.last = J.opts[idx]; return J.opts[idx];
+}
+function mineLap(r) {
+  const M = MINE; if (r.lap >= M.LAPS && !r.fin) { r.fin = true; r.finT = GM.time; mineFx('finish', r); } else if (!r.fin) mineFx('lap', r);
+}
+MINE.collide = function (dt) {
+  const M = MINE, R = GM.racers;
+  for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) {
+    const a = R[i], b = R[j], key = i * 6 + j; if (M.pairCD[key] > 0) M.pairCD[key] -= dt;
+    const d = mineDU(a.u, b.u), sgn = Math.sign(b.prog - a.prog), prev = M.pairS[key]; M.pairS[key] = sgn;
+    if (a.mode !== 0 || b.mode !== 0) continue;
