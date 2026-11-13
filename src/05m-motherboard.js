@@ -17,3 +17,23 @@ COURSES.push({
   sun: [-.45, .75, -.5], lightT: [1.05, 1.0, .92], shadowT: [.18, .32, .36],
   pal: { road: [.03, .16, .08], road2: [.04, .2, .1], edge: [1.6, 1.1, .35], edge2: [.4, 1.4, 1.3], ramp: [1.5, 1.0, .3], sh: [.05, .2, .12], cliff: [.06, .14, .12], deep: [.02, .2, .22], deepGlow: .4, wall: [.08, .12, .12], wall2: [.12, .18, .16], branch: [.05, .2, .1], lava: [1.6, .7, .15] },
   far: { flat: 1.2, drop: 0, hill: 0, mtn: 0, lo: [.012, .07, .04], hi: [.012, .07, .04], pcb: 1 },
+  sc: { tree: { n: 0, near: 0 }, rocks: 0, lights: { n: 0, col: [.3, .9, .7], clustered: 1 }, clouds: 0, lantern: [.4, 2, 1.8] },
+  amb: { col: [.45, 1.5, 1.35], fall: .35, size: .085 }, hl: [.7, 1, .95],
+  build(T) {
+    // Six zones, one continuous descent. Wide road = open board; the main traces run along it as lanes.
+    // sides: 0 board edge (cliff), 1 component wall, 2 live copper bus, 3 open flat board
+    const F = { L: 3, R: 3 };
+    T.zone('mb0', 640).s(150, 0, -.10, { w: 15 }).s(170, -25, -.14, { w: 15 }).ramp(16, 3, 0).s(150, -25, -.12, { w: 14, ...F }).drop(7).s(170, 10, -.11, { w: 15, ...F }).s(80, 10, -.11, { w: 15, ...F });
+    T.cp().zone('mb1', 650).short(-1, 260, 24, 4.5).s(220, 40, -.11, { w: 14, L: 3, R: 2 }).s(120, 40, -.15, { w: 14, L: 3, R: 2 }).zone('solder', 300).s(160, 0, -.11, { w: 15, L: 3, R: 2 }).ramp(14, 2.6).s(150, -30, -.12, { w: 15, ...F }).s(80, -30, -.12, { w: 15, ...F });
+    T.cp().zone('mb2', 650).s(170, -30, -.12, { w: 15, ...F }).s(160, 15, -.13, { w: 15, ...F }).ramp(16, 3.2, 16).s(160, 15, -.11, { w: 15, ...F }).s(160, -20, -.12, { w: 15, ...F }).s(80, -20, -.12, { w: 15, ...F });
+    T.cp().zone('mb3', 650).s(160, -20, -.10, { w: 15, ...F }).s(170, 25, -.12, { w: 15, ...F }).s(160, 25, -.11, { w: 15, ...F }).drop(8).s(160, 0, -.12, { w: 15, ...F }).s(80, 0, -.12, { w: 15, ...F });
+    T.cp().zone('mb4', 650).short(1, 240, 20, 3.4).zone('solder', 260).s(220, 0, -.10, { w: 15, L: 1, R: 3 }).s(160, -30, -.13, { w: 14, ...F }).ramp(16, 3.4, 20).s(120, -30, -.11, { w: 15, ...F }).s(150, 10, -.12, { w: 15, ...F }).s(80, 10, -.12, { w: 15, ...F });
+    T.cp().zone('mb5', 760).s(160, 10, -.13, { w: 15, ...F }).drop(9).s(170, -15, -.12, { w: 15 }).ramp(18, 4, 22).s(150, 0, -.10, { w: 15, ...F }).s(110, 0, -.10, { w: 15, ...F }).s(280, 0, -.07, { w: 15, ...F });
+  }
+});
+
+// ---------------------------------------------------------------- per-track setup (called from buildTerrain, after loadTrack)
+function moboSetupTrack() {
+  const T = track, N = T.N, rnd = RNG(4242); T.mb = true;
+  MOBO.zb = T.zones.filter(z => z.kind.startsWith('mb')).map(z => z.s0); MOBO.zb.push(T.len);
+  // --- main traces: 3 lanes per zone, right-angled jogs at 45° with rounded corners, kept in order and apart
