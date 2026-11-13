@@ -56,3 +56,23 @@ function moboSetupTrack() {
   MOBO.lanes = L; MOBO.laneW = LW;
   const laneAt = (k, s) => arrAt(L[k], s);
   MOBO.laneAt = laneAt;
+  const freeD = (s, avoid = 1.4) => { // a spot on open board between traces
+    const w = arrAt(T.wid, s) - 1.4, opts = [];
+    for (let d = -w; d <= w; d += .5) { let ok = true; for (let k = 0; k < 3; k++) if (Math.abs(d - laneAt(k, s)) < LW[k] + avoid) ok = false; if (ok) opts.push(d); }
+    return opts.length ? opts[(rnd() * opts.length) | 0] : 0;
+  };
+  // --- features (explicit positions, then checked against ramps / gaps / drops)
+  const clear = (s, r) => { for (let q = -r; q <= r; q += 2) { const j = clamp(Math.round((s + q) / DS), 0, N - 1); if (T.gap[j] || T.rampF[j]) return false; } for (const l of T.lips) if (Math.abs(l - s) < r) return false; return true; };
+  const zs = z => MOBO.zb[z];
+  MOBO.vias = []; for (const [s0, s1] of [[zs(3) + 190, zs(3) + 380], [zs(4) + 60, zs(4) + 250]]) if (clear(s0, 10) && clear(s1, 10)) MOBO.vias.push({ s0, d0: freeD(s0, 1.6), s1, d1: freeD(s1, 1.6), r: 2.5 });
+  MOBO.caps = []; for (const s of [zs(0) + 420, zs(1) + 560, zs(2) + 70, zs(2) + 250, zs(2) + 540, zs(4) + 430, zs(5) + 120]) if (clear(s, 14)) MOBO.caps.push({ s, d: freeD(s, 1.5), r: 2.4, ch: 1 });
+  MOBO.chips = []; for (const s of [zs(3) + 95, zs(3) + 560, zs(5) + 430]) if (clear(s, 26)) MOBO.chips.push({ s });
+  MOBO.towers = [];
+  for (let s = zs(2) + 30; s < zs(3) - 20; s += 38 + rnd() * 30) if (clear(s, 6) && !MOBO.caps.some(c => Math.abs(c.s - s) < 18)) { const d = freeD(s, 2.6); if (Math.abs(d) < arrAt(T.wid, s) - 3) MOBO.towers.push({ s, d, r: 1.5 + rnd() * .5 }); }
+  MOBO.logs = []; for (let s = zs(0) + 80; s < T.fin - 60; s += 120 + rnd() * 140) if (clear(s, 6)) { const d = freeD(s, 1.2); MOBO.logs.push({ s, d, len: 3 + rnd() * 2, r: .32 }); }
+  MOBO.hot = T.shorts.filter(sh => !sh.hidden && sh.s0 >= zs(1) - 5 && sh.s0 < zs(2)).map(sh => ({ s0: sh.s0, s1: sh.s1, side: sh.side }));
+  MOBO.solderZ = T.zones.filter(z => z.kind === 'solder');
+  // speed pads / kicks from the generic placer must not land on top of the new features
+  const busy = s => MOBO.caps.some(c => Math.abs(c.s - s) < 20) || MOBO.chips.some(c => Math.abs(c.s - s) < 40) || MOBO.vias.some(v => Math.abs(v.s0 - s) < 15 || Math.abs(v.s1 - s) < 15);
+  T.pads = T.pads.filter(p => !busy(p.s)); T.kicks = T.kicks.filter(k => !busy(k.s0 + k.len));
+  T.fixedKicks = T.kicks.length;
