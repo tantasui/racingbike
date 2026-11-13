@@ -228,3 +228,19 @@ class MineCart {
         if (Math.abs(bdx) < .62) {
           const P = mineLP(M.lanes[best], uu, MQ2); this.mode = 0; this.lane = best; this.u = uu; this.v = Math.max(4, this.vel.x * P.tx + this.vel.y * P.ty * .3 + this.vel.z * P.tz); this.tipImp += clamp(bdx * .55, -.5, .5);
           this.pos.set(P.x, P.y, P.z); const perfect = this.rj && Math.abs(bdx) < .2;
+          if (perfect) { this.boost = Math.min(5, this.boost + 1); this.v += 3; }
+          if (this.rj) { const n = (this.rjAhead || []).filter(o => o.prog < this.prog).length; if (n) { this.pts.trick += 200 * n; this.best = Math.max(this.best, 200 * n); this.bestN = Math.max(this.bestN, n); } mineFx('land', this, { perfect, passed: n }); } else mineFx('land', this, { hard: this.airT > .5 });
+          this.rj = false; return;
+        }
+        this.tumble = true; this.spin = Math.sign(bdx) * 7; this.vel.y = 3; this.vel.multiplyScalar(.8); mineFx('derail', this, 'land');
+      }
+    }
+    if (M.env[bi] === 0) { if (this.pos.y < M.cy[bi] - .45 || Math.abs(this.ox) > 2.9) { this.pos.y = Math.max(this.pos.y, M.cy[bi] - .45); this.wreck('floor'); return; } }
+    if (this.pos.y < M.lavaY + .25 || this.airT > 7) this.wreck('lava');
+  }
+}
+
+// ---------------------------------------------------------------- PHASE 2: switches & merges
+function mineSwitch(J, r, want) {
+  let idx;
+  if (r.ai) r.ai.plan[J.id] = null;
