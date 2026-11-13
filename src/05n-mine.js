@@ -195,3 +195,19 @@ class MineCart {
     let u = this.u + this.v * dt / P.sc; const u0 = this.u;
     for (const J of M.junc) if (J.lane === this.lane && u0 < J.u && u >= J.u) { this.lane = mineSwitch(J, this, c.choice != null ? c.choice : lean < -.3 ? 0 : lean > .3 ? 1 : -1); break; }
     const l2 = M.lanes[this.lane]; if (this.lane !== 0 && u >= l2.b) { this.lane = l2.to; }
+    if (this.lane === 0 && u >= L) { u -= L; this.lap++; mineLap(this); }
+    this.u = u; this.prog = this.lap * L + u; this.ci = Math.round(u) % L;
+    const Q = mineLP(M.lanes[this.lane], u, MQ); this.pos.set(Q.x, Q.y, Q.z); this.fw.set(Q.tx, Q.ty, Q.tz); this.ox = Q.ox; this.kNow = Q.k;
+    this.wheel += this.v * dt; this.c0 = v0;
+    // tipping: lateral load beyond the limit builds tip; leaning into the curve raises the limit
+    const aLat = this.aLat = Q.k * this.v * this.v, lim = M.LIM * st.stab * (this.isP ? 1.4 : 1) + 5 * lean * Math.sign(Q.k || 1) * (Math.abs(aLat) > 2 ? 1 : 0), ex = Math.abs(aLat) - lim;
+    if (ex > 0) this.tip -= Math.sign(Q.k) * ex * .2 * dt; else this.tip -= this.tip * Math.min(1, dt * 2.4);
+    this.tip += this.tipImp; this.tipImp = 0;
+    if (Math.abs(this.tip) >= 1) { this.derail(Math.sign(this.tip), 'tip'); return; }
+    // heat from the lava below
+    if (M.env[this.ci] && Q.y - M.lavaY < 4.2) this.hurt(9 * dt);
+    if (Q.y - M.lavaY < .2) { this.pos.y = Q.y; this.wreck('lava'); return; }
+    if (mineGapAt(this.lane, u)) { this.launch(0, 0, 0); return; }
+    if (c.jumpHit && this.stunT <= 0 && GM.count <= 0) { const side = Math.abs(lean) > .3 ? Math.sign(lean) : 0; this.launch(8.4, side, side ? 6 : 0); mineFx('jump', this, side); }
+  }
+  air(dt, lean) {
