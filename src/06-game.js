@@ -144,6 +144,7 @@ function collide() {
   }
 }
 function stepRace(dt) {
+  if (course.mine) return MINE.stepRace(dt);
   GM.t += dt; const R = GM.racers, pl = GM.player;
   if (GM.count > 0) {
     GM.count -= dt; const n = Math.ceil(GM.count - .4);
@@ -171,7 +172,8 @@ function stepRace(dt) {
   for (let i = 0; i < n; i++) { const f = 6 + Math.random() * 75, l = (Math.random() - .5) * 46, c = GM.white > .3 ? [1, 1.05, 1.2] : A.col; spawnP(TP0.x + fx * f + rx * l, p.y - 2 + Math.random() * 13, TP0.z + fz * f + rz * l, (Math.random() - .5) * 2, A.fall + (Math.random() - .5), (Math.random() - .5) * 2, 1 + Math.random() * .8, A.size * (.6 + Math.random()), c[0], c[1], c[2], 0); }
   let ns = p.v * dt * (p.boostT > 0 ? 2.6 : 1.1) * (p.v > 14 ? 1 : 0); ns = (ns | 0) + (Math.random() < ns % 1 ? 1 : 0);
   for (let i = 0; i < ns; i++) { const s = p.s + 12 + Math.random() * 70, d = p.d + (Math.random() - .5) * 20; ground(s, d, G1); if (G1.void || G1.reg > 1) continue; tpos(s, d, TP1); const o = Math.random() < .5; decal(TP1.x, G1.y, TP1.z, TP1.th, slopeAt(s, d, 2), .16, 3 + p.v * .14, o ? 2.2 : 1.9, o ? .35 : .85, o ? .1 : .12, .8); }
-  if (!GM.demo) { AU.frame(p.state ? 0 : p.v, p.ride, p.air, p.boostT > 0, rumble); if (p.ride === 1 && !p.air && !p.state && p.v > 3) { GM.gal = (GM.gal || 0) + p.v * dt; if (GM.gal > 3.2) { GM.gal = 0; AU.thump(); } } AU.music(course.root, course.tempo, clamp(p.v / 36, 0, 1)); }
+  if (course.mb) MOBO.step(dt);
+  if (!GM.demo) { AU.frame(p.state ? 0 : p.v, p.ride, p.air, p.boostT > 0, rumble); if (p.ride === 1 && !p.air && !p.state && p.v > 3) { GM.gal = (GM.gal || 0) + p.v * dt; if (GM.gal > 3.2) { GM.gal = 0; AU.thump(); } } if (course.mb) MOBO.audio(p); else AU.music(course.root, course.tempo, clamp(p.v / 36, 0, 1)); }
   else AU.silence();
   // flow
   if (!GM.demo && GM.finWait > 0) { GM.finWait -= dt; if (GM.finWait <= 0) showResults(); }
@@ -180,6 +182,7 @@ function stepRace(dt) {
 
 // ---------------------------------------------------------------- camera
 function updCamera(dt) {
+  if (course.mine) return MINE.camera(dt);
   const p = GM.player, T = track; tpos(p.s, p.d, TP0);
   const sp = clamp(p.v / 38, 0, 1.3), boost = p.boostT > 0 ? 1 : 0;
   let yawT = TP0.th + p.beta * .55 + p.a * .15;
